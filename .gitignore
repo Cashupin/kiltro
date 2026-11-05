@@ -1,0 +1,11 @@
+# Build de Wails
+build/bin
+
+# Frontend (dist/ lo regenera Vite en cada build)
+frontend/node_modules
+frontend/dist
+
+# Carpeta runtime de desarrollo (KILTRO_ROOT): ignorar todo menos la estructura
+runtime/**
+!runtime/*/
+!runtime/*/.gitkeep
