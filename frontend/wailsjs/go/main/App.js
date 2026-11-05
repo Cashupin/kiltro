@@ -5,3 +5,15 @@
 export function GetAppRoot() {
   return window['go']['main']['App']['GetAppRoot']();
 }
+
+export function GetServices() {
+  return window['go']['main']['App']['GetServices']();
+}
+
+export function StartService(arg1) {
+  return window['go']['main']['App']['StartService'](arg1);
+}
+
+export function StopService(arg1) {
+  return window['go']['main']['App']['StopService'](arg1);
+}

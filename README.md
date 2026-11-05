@@ -1,16 +1,60 @@
-# README
+# Kiltro
 
-## About
+Entorno de desarrollo local liviano para Windows (reemplazo de Laragon): Nginx, PHP,
+MySQL y Redis portables, con vhosts `*.test` automáticos. Hecho con Wails v2 (Go + Svelte).
 
-This is the official Wails Svelte-TS template.
+## Requisitos para desarrollar
 
-## Live Development
+- Go 1.22+
+- Node.js + npm
+- Wails CLI v2: `go install github.com/wailsapp/wails/v2/cmd/wails@latest`
+- WebView2 (viene con Windows 11)
 
-To run in live development mode, run `wails dev` in the project directory. This will run a Vite development
-server that will provide very fast hot reload of your frontend changes. If you want to develop in a browser
-and have access to your Go methods, there is also a dev server that runs on http://localhost:34115. Connect
-to this in your browser, and you can call your Go code from devtools.
+Verificar con `wails doctor`.
 
-## Building
+## Binarios (se descargan a mano, no van al repo)
 
-To build a redistributable, production mode package, use `wails build`.
+Los binarios van dentro de `bin/` relativo al ejecutable. En desarrollo, eso es
+`runtime/bin/` (ver más abajo).
+
+| Servicio | Versión probada | Carpeta                           | Descarga                                   |
+|----------|-----------------|-----------------------------------|--------------------------------------------|
+| Nginx    | 1.30.4          | `bin/nginx/nginx-1.30.4/nginx.exe` | https://nginx.org/en/download.html (zip de Windows) |
+
+Se descomprime el zip tal cual: la carpeta `nginx-<versión>` debe contener `nginx.exe`
+y `conf/mime.types`. Si hay varias versiones, por ahora se usa la mayor.
+
+## Desarrollo
+
+La carpeta `runtime/` hace de "carpeta de la app" en desarrollo (bin, etc, www, data, logs).
+Se le indica a Kiltro con la variable `KILTRO_ROOT`:
+
+```bat
+:: cmd
+set KILTRO_ROOT=%CD%\runtime
+wails dev
+```
+
+```powershell
+# PowerShell
+$env:KILTRO_ROOT = "$PWD\runtime"
+wails dev
+```
+
+Sin `KILTRO_ROOT`, Kiltro usa la carpeta donde está `kiltro.exe`.
+
+El log de la app queda en `<raíz>/logs/kiltro.log`.
+
+## Build
+
+```bat
+wails build
+```
+
+Genera `build/bin/kiltro.exe`.
+
+## Tests
+
+```bat
+go test ./internal/...
+```

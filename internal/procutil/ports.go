@@ -60,6 +60,13 @@ func CheckPortFree(port int) error {
 	return nil
 }
 
+// ListenerPID dice si hay algún proceso escuchando en el puerto y cuál es su PID.
+// A diferencia de CheckPortFree, NO intenta abrir el puerto, así que sirve para
+// esperar a que un servicio recién lanzado termine de arrancar sin "robarle" el puerto.
+func ListenerPID(port int) (int, bool) {
+	return findListenerPID(port)
+}
+
 // --- Tabla TCP (GetExtendedTcpTable de iphlpapi.dll) ---
 //
 // x/sys/windows no trae esta función, así que la cargamos de la DLL del sistema.
