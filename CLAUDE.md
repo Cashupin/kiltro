@@ -114,11 +114,11 @@ Todas las rutas se resuelven relativas al ejecutable, nunca rutas absolutas hard
 
 Trabajar **una etapa a la vez**. No adelantar trabajo de etapas siguientes.
 
-- [ ] **Etapa 1:** Proyecto Wails v2 inicializado. `ServiceManager` + interface `Service`.
+- [x] **Etapa 1:** Proyecto Wails v2 inicializado. `ServiceManager` + interface `Service`.
       Nginx arranca/se detiene desde un botón. Job Object y chequeo de puerto funcionando.
-  - [ ] 1a: `wails init` (svelte-ts) + `config.AppRoot()` + carpeta `runtime/` para dev.
-  - [ ] 1b: `procutil`: Job Object, lanzar sin ventana, chequeo de puerto.
-  - [ ] 1c: interface `Service`, `ServiceManager`, Nginx start/stop desde un botón.
+  - [x] 1a: `wails init` (svelte-ts) + `config.AppRoot()` + carpeta `runtime/` para dev.
+  - [x] 1b: `procutil`: Job Object, lanzar sin ventana, chequeo de puerto.
+  - [x] 1c: interface `Service`, `ServiceManager`, Nginx start/stop desde un botón.
 - [ ] **Etapa 2:** PHP-CGI con workers + supervisión. Un vhost fijo de prueba que sirve un `phpinfo()`.
 - [ ] **Etapa 3:** Escaneo de `www/`, generación automática de vhosts desde plantilla,
       bloque en el archivo hosts con elevación. Detección de proyectos Laravel (root en `/public`).
@@ -140,4 +140,13 @@ Trabajar **una etapa a la vez**. No adelantar trabajo de etapas siguientes.
 
 ## Estado actual
 
-Proyecto recién iniciado. Ninguna etapa completada.
+**Etapa 1 completa** (2026-11-05). Siguiente: Etapa 2 (PHP-CGI con workers + supervisión).
+
+Notas para las próximas etapas:
+- La plantilla svelte-ts de Wails v2.17.1 trae Svelte 5: se usa `mount()` en `main.ts`, pero
+  los componentes siguen con sintaxis clásica (sin runes). Vite fijado en `^7` por un conflicto
+  de peer deps de la plantilla.
+- Nginx probado con 1.30.4 en `bin/nginx/nginx-1.30.4/`. `nginx.conf` se genera en cada arranque
+  (`etc/nginx/nginx.conf`); por ahora es fijo, en la etapa 3 pasa a plantilla.
+- Si el master de un servicio muere de golpe, sus hijos NO mueren solos en Windows: usar
+  `procutil.KillTree` al detectar la salida (ver `nginx.go`, `watch`).
