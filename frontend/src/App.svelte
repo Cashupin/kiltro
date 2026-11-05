@@ -18,6 +18,20 @@
     error: 'Error',
   }
 
+  const names: Record<string, string> = {
+    php: 'PHP',
+    nginx: 'Nginx',
+    mysql: 'MySQL',
+    redis: 'Redis',
+  }
+
+  // [9000, 9001, 9002, 9003] → ":9000-9003"; [80] → ":80"
+  function portsLabel(ports: number[]): string {
+    if (!ports || ports.length === 0) return ''
+    if (ports.length === 1) return ':' + ports[0]
+    return ':' + ports[0] + '-' + ports[ports.length - 1]
+  }
+
   async function refresh() {
     try {
       list = await GetServices()
@@ -63,9 +77,12 @@
     <tbody>
       {#each list as s (s.name)}
         <tr>
-          <td class="name">{s.name}</td>
-          <td class="ports">:{s.ports.join(', :')}</td>
-          <td><span class="status {s.status}">{labels[s.status] ?? s.status}</span></td>
+          <td class="name">{names[s.name] ?? s.name}</td>
+          <td class="ports">{portsLabel(s.ports)}</td>
+          <td>
+            <span class="status {s.status}">{labels[s.status] ?? s.status}</span>
+            {#if s.detail}<span class="detail">{s.detail}</span>{/if}
+          </td>
           <td>
             <button on:click={() => toggle(s)} disabled={busy[s.name]}>
               {s.status === 'running' || s.status === 'starting' ? 'Detener' : 'Iniciar'}
@@ -105,7 +122,6 @@
 
   .name {
     font-weight: bold;
-    text-transform: capitalize;
   }
 
   .ports {
@@ -126,6 +142,12 @@
   }
   .status.error {
     background: #c62828;
+  }
+
+  .detail {
+    margin-left: 0.5rem;
+    opacity: 0.7;
+    font-size: 0.9em;
   }
 
   button {

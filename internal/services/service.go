@@ -38,3 +38,9 @@ type Service interface {
 	// LastError devuelve el último error (vacío si no hubo).
 	LastError() string
 }
+
+// Detailer es opcional: un servicio que lo implementa muestra un texto extra
+// en la UI (ej. PHP: "4/4 workers").
+type Detailer interface {
+	Detail() string
+}

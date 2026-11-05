@@ -268,23 +268,47 @@ func runNginxCommand(job *procutil.Job, exe string, extra ...string) (string, er
 	}
 }
 
-// writeNginxConf genera etc/nginx/nginx.conf. Por ahora es una config fija y
-// mínima (un server en el puerto 80 que responde un texto). En la etapa 3 esto
-// pasa a generarse desde templates/ con los vhosts de www/.
+// phpUpstream arma el bloque `upstream` con un `server` por worker de PHP
+// (los mismos puertos que levanta php.go). Nginx reparte las peticiones entre ellos.
+func phpUpstream() string {
+	var b strings.Builder
+	b.WriteString("    upstream php_workers {\n")
+	for i := 0; i < phpWorkers; i++ {
+		fmt.Fprintf(&b, "        server 127.0.0.1:%d;\n", phpBasePort+i)
+	}
+	b.WriteString("    }\n")
+	return b.String()
+}
+
+// writeNginxConf genera etc/nginx/nginx.conf. Por ahora es una config fija:
+// un server en localhost:80 que sirve etc/nginx/default/ (un phpinfo de prueba)
+// pasando los .php a los workers de PHP. En la etapa 3 esto pasa a generarse
+// desde templates/ con los vhosts de www/.
 func writeNginxConf(exe string) error {
+	defaultRoot := config.Path("etc", "nginx", "default")
+
 	// Carpetas que nginx necesita que existan (no crea las carpetas padre).
 	for _, dir := range []string{
 		config.Path("etc", "nginx", "temp"),
 		config.Path("logs", "nginx"),
+		defaultRoot,
 	} {
 		if err := os.MkdirAll(dir, 0o755); err != nil {
 			return fmt.Errorf("no se pudo crear %s: %w", dir, err)
 		}
 	}
 
-	// mime.types viene con nginx; se usa directo desde su carpeta.
+	// Página de prueba. Vive fuera de www/ a propósito: www/ es solo para proyectos.
+	index := filepath.Join(defaultRoot, "index.php")
+	if err := os.WriteFile(index, []byte("<?php\n// Generado por Kiltro (página de prueba).\nphpinfo();\n"), 0o644); err != nil {
+		return fmt.Errorf("no se pudo escribir %s: %w", index, err)
+	}
+
+	// mime.types y fastcgi.conf vienen con nginx; se usan directo desde su carpeta.
 	// Nginx acepta "/" como separador en Windows, y las comillas protegen espacios.
-	mimeTypes := filepath.ToSlash(filepath.Join(filepath.Dir(exe), "conf", "mime.types"))
+	nginxConfDir := filepath.Join(filepath.Dir(exe), "conf")
+	mimeTypes := filepath.ToSlash(filepath.Join(nginxConfDir, "mime.types"))
+	fastcgiConf := filepath.ToSlash(filepath.Join(nginxConfDir, "fastcgi.conf"))
 
 	conf := fmt.Sprintf(`# Generado por Kiltro. NO EDITAR: se sobrescribe en cada arranque.
 worker_processes  1;
@@ -306,17 +330,26 @@ http {
     uwsgi_temp_path        "etc/nginx/temp/uwsgi";
     scgi_temp_path         "etc/nginx/temp/scgi";
 
+%[4]s
     server {
         listen       %[3]d;
         server_name  localhost;
+        root         "%[5]s";
+        index        index.php index.html;
 
         location / {
-            default_type  text/plain;
-            return 200 "Kiltro: Nginx funcionando\n";
+            try_files $uri $uri/ =404;
+        }
+
+        location ~ \.php$ {
+            # Si el .php no existe, 404 (sin esto, PHP intentaría adivinar el script).
+            try_files $uri =404;
+            include       "%[6]s";
+            fastcgi_pass  php_workers;
         }
     }
 }
-`, nginxErrorLog, mimeTypes, nginxPort)
+`, nginxErrorLog, mimeTypes, nginxPort, phpUpstream(), filepath.ToSlash(defaultRoot), fastcgiConf)
 
 	path := config.Path(filepath.FromSlash(nginxConfRel))
 	if err := os.WriteFile(path, []byte(conf), 0o644); err != nil {

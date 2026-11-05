@@ -5,6 +5,7 @@ export namespace services {
 	    status: string;
 	    error: string;
 	    ports: number[];
+	    detail: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new Info(source);
@@ -16,6 +17,7 @@ export namespace services {
 	        this.status = source["status"];
 	        this.error = source["error"];
 	        this.ports = source["ports"];
+	        this.detail = source["detail"];
 	    }
 	}
 

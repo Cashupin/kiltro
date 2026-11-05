@@ -20,9 +20,15 @@ Los binarios van dentro de `bin/` relativo al ejecutable. En desarrollo, eso es
 | Servicio | Versión probada | Carpeta                           | Descarga                                   |
 |----------|-----------------|-----------------------------------|--------------------------------------------|
 | Nginx    | 1.30.4          | `bin/nginx/nginx-1.30.4/nginx.exe` | https://nginx.org/en/download.html (zip de Windows) |
+| PHP      | 8.3.33 (x64)    | `bin/php/php-8.3.33-Win32-vs16-x64/php-cgi.exe` | https://windows.php.net/download/ (zip; se recomienda **NTS**) |
 
-Se descomprime el zip tal cual: la carpeta `nginx-<versión>` debe contener `nginx.exe`
-y `conf/mime.types`. Si hay varias versiones, por ahora se usa la mayor.
+Se descomprimen los zip tal cual. Si hay varias versiones, por ahora se usa la mayor.
+
+- **Nginx:** la carpeta `nginx-<versión>` debe contener `nginx.exe`, `conf/mime.types` y `conf/fastcgi.conf`.
+- **PHP:** la carpeta `php-<versión>` debe contener `php-cgi.exe`, `ext/` y `php.ini-development`.
+  Si no hay `php.ini`, Kiltro lo crea desde `php.ini-development` con las extensiones típicas
+  de Laravel activadas (curl, fileinfo, gd, intl, mbstring, openssl, pdo_mysql, pdo_sqlite,
+  sqlite3, zip). Si ya existe, no lo toca. **No copies un `php.ini` de Laragon**: trae rutas de Laragon.
 
 ## Desarrollo
 

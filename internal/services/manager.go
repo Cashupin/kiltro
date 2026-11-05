@@ -25,6 +25,7 @@ type Info struct {
 	Status Status `json:"status"`
 	Error  string `json:"error"`
 	Ports  []int  `json:"ports"`
+	Detail string `json:"detail"` // texto extra opcional (ver Detailer)
 }
 
 // ServiceManager coordina todos los servicios: chequea puertos antes de
@@ -66,7 +67,10 @@ func NewManager(onChange func()) (*ServiceManager, error) {
 	m := &ServiceManager{
 		env:     env,
 		logFile: f,
+		// Orden de arranque: PHP antes que Nginx (Nginx le pasa los .php).
+		// StopAll los detiene en orden inverso.
 		services: []Service{
+			NewPHP(env),
 			NewNginx(env),
 		},
 	}
@@ -152,12 +156,16 @@ func (m *ServiceManager) StopAll() {
 func (m *ServiceManager) List() []Info {
 	out := make([]Info, 0, len(m.services))
 	for _, s := range m.services {
-		out = append(out, Info{
+		info := Info{
 			Name:   s.Name(),
 			Status: s.Status(),
 			Error:  s.LastError(),
 			Ports:  s.Ports(),
-		})
+		}
+		if d, ok := s.(Detailer); ok {
+			info.Detail = d.Detail()
+		}
+		out = append(out, info)
 	}
 	return out
 }

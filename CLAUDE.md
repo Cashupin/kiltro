@@ -16,7 +16,8 @@ nada de Electron, nada de servicios de Windows instalados.
 - **Wails v2** (NO v3, que está en alpha y tiene otra API). Si dudas de una API, es la de v2.
 - **Go** 1.22+ para todo el backend.
 - **Frontend:** Svelte + TypeScript, plantilla oficial `svelte-ts` de Wails v2. CSS simple, sin frameworks pesados.
-- Mantener la versión de Svelte que trae la plantilla de Wails v2. No migrar a Svelte 5 ni usar runes.
+- Usar la versión de Svelte que trae la plantilla de Wails v2 (hoy Svelte 5), con sintaxis clásica:
+  **sin runes** (`let`, `$:`, `on:click`, `export let`).
 - **Plataforma:** solo Windows 10/11. No hace falta soporte para macOS/Linux.
 - Evitar CGO. No agregar dependencias nuevas sin preguntar primero y explicar por qué.
 
@@ -119,7 +120,7 @@ Trabajar **una etapa a la vez**. No adelantar trabajo de etapas siguientes.
   - [x] 1a: `wails init` (svelte-ts) + `config.AppRoot()` + carpeta `runtime/` para dev.
   - [x] 1b: `procutil`: Job Object, lanzar sin ventana, chequeo de puerto.
   - [x] 1c: interface `Service`, `ServiceManager`, Nginx start/stop desde un botón.
-- [ ] **Etapa 2:** PHP-CGI con workers + supervisión. Un vhost fijo de prueba que sirve un `phpinfo()`.
+- [x] **Etapa 2:** PHP-CGI con workers + supervisión. Un vhost fijo de prueba que sirve un `phpinfo()`.
 - [ ] **Etapa 3:** Escaneo de `www/`, generación automática de vhosts desde plantilla,
       bloque en el archivo hosts con elevación. Detección de proyectos Laravel (root en `/public`).
 - [ ] **Etapa 4:** MySQL (inicialización, arranque, apagado limpio).
@@ -140,7 +141,7 @@ Trabajar **una etapa a la vez**. No adelantar trabajo de etapas siguientes.
 
 ## Estado actual
 
-**Etapa 1 completa** (2026-11-05). Siguiente: Etapa 2 (PHP-CGI con workers + supervisión).
+**Etapas 1 y 2 completas** (2026-11-05). Siguiente: Etapa 3 (escaneo de `www/`, vhosts desde plantilla, bloque en hosts con elevación, detección de Laravel).
 
 Notas para las próximas etapas:
 - La plantilla svelte-ts de Wails v2.17.1 trae Svelte 5: se usa `mount()` en `main.ts`, pero
@@ -150,3 +151,7 @@ Notas para las próximas etapas:
   (`etc/nginx/nginx.conf`); por ahora es fijo, en la etapa 3 pasa a plantilla.
 - Si el master de un servicio muere de golpe, sus hijos NO mueren solos en Windows: usar
   `procutil.KillTree` al detectar la salida (ver `nginx.go`, `watch`).
+- PHP probado con 8.3.33 (build TS de Laragon; para FastCGI se recomienda NTS, revisar en la etapa 5).
+  `php.ini` vive junto a cada versión y Kiltro solo lo crea si falta (desde `php.ini-development`);
+  `extension_dir` se pasa con `-d` al arrancar. 4 workers en 9000-9003 detrás de `upstream php_workers`.
+- La página de prueba (phpinfo) está en `etc/nginx/default/`, fuera de `www/` a propósito.
