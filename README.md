@@ -51,6 +51,27 @@ Sin `KILTRO_ROOT`, Kiltro usa la carpeta donde está `kiltro.exe`.
 
 El log de la app queda en `<raíz>/logs/kiltro.log`.
 
+## Sitios y archivo hosts
+
+Cada carpeta dentro de `www/` se sirve en `http://<carpeta>.test` (los proyectos Laravel
+se sirven desde `public/`). Los vhosts se generan en `etc/nginx/sites/` al arrancar Nginx
+o al pulsar "Recargar sitios".
+
+Para que `*.test` resuelva, Kiltro escribe un bloque en
+`C:\Windows\System32\drivers\etc\hosts`:
+
+```
+# KILTRO START
+127.0.0.1 proyecto.test
+# KILTRO END
+```
+
+- Solo toca lo que está entre esas marcas; el resto del archivo no se modifica.
+- Escribir el hosts requiere admin: Windows muestra el aviso de UAC, y solo cuando la
+  lista de dominios cambió. Kiltro en sí nunca corre como admin.
+- Antes de cada cambio se guarda una copia en `etc/hosts-backup/` (las últimas 10).
+- Algunos antivirus avisan cuando un programa modifica el hosts; hay que permitirlo.
+
 ## Build
 
 ```bat

@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"kiltro/internal/config"
+	"kiltro/internal/hosts"
 	"kiltro/internal/procutil"
 	"kiltro/internal/vhosts"
 )
@@ -40,6 +41,9 @@ type ServiceManager struct {
 	// opMu evita que dos Start/Stop corran a la vez (ej. doble click en el botón).
 	// List() no lo usa, para que la UI pueda leer estados mientras se detiene algo.
 	opMu sync.Mutex
+
+	hostsMu  sync.Mutex // un solo aviso de UAC a la vez
+	hostsErr string     // error del último intento de actualizar el hosts
 }
 
 // NewManager crea el manager, abre logs/kiltro.log, crea el Job Object y
@@ -191,6 +195,81 @@ func (m *ServiceManager) ReloadSites() ([]vhosts.Site, error) {
 		m.env.Log.Printf("[nginx] error al recargar sitios: %v", err)
 	}
 	return sites, err
+}
+
+// HostsStatus es el estado del archivo hosts respecto de los sitios de www/.
+type HostsStatus struct {
+	UpToDate bool     `json:"upToDate"`
+	Domains  []string `json:"domains"` // los que deberían estar
+	Error    string   `json:"error"`   // error de lectura o del último intento de actualizar
+}
+
+// HostsStatus compara el bloque de Kiltro del hosts con los sitios actuales.
+// Solo lee: no pide permisos.
+func (m *ServiceManager) HostsStatus() HostsStatus {
+	m.hostsMu.Lock()
+	lastErr := m.hostsErr
+	m.hostsMu.Unlock()
+
+	domains, err := m.siteDomains()
+	if err != nil {
+		return HostsStatus{Error: err.Error()}
+	}
+	content, err := hosts.Read()
+	if err != nil {
+		return HostsStatus{Domains: domains, Error: err.Error()}
+	}
+	st := HostsStatus{UpToDate: hosts.UpToDate(content, domains), Domains: domains}
+	if !st.UpToDate {
+		st.Error = lastErr
+	}
+	return st
+}
+
+// SyncHosts deja el bloque de Kiltro del hosts con los dominios de www/.
+// Si ya está al día no hace nada (y no aparece el aviso de UAC). Si no, pide
+// permisos de admin y espera a que el usuario responda.
+func (m *ServiceManager) SyncHosts() error {
+	// hostsMu (y no opMu): mientras el usuario mira el aviso de UAC, los
+	// botones de iniciar/detener servicios siguen funcionando.
+	m.hostsMu.Lock()
+	defer m.hostsMu.Unlock()
+
+	domains, err := m.siteDomains()
+	if err != nil {
+		return err
+	}
+	content, err := hosts.Read()
+	if err != nil {
+		m.hostsErr = err.Error()
+		return err
+	}
+	if hosts.UpToDate(content, domains) {
+		m.hostsErr = ""
+		return nil
+	}
+
+	m.env.Log.Printf("[hosts] actualizando bloque KILTRO con %d dominio(s): pidiendo permisos de admin", len(domains))
+	if err := hosts.RequestUpdate(domains, config.Path("etc")); err != nil {
+		m.hostsErr = err.Error()
+		m.env.Log.Printf("[hosts] %v", err)
+		return err
+	}
+	m.hostsErr = ""
+	m.env.Log.Printf("[hosts] actualizado (backup en etc\\hosts-backup)")
+	return nil
+}
+
+func (m *ServiceManager) siteDomains() ([]string, error) {
+	sites, _, err := vhosts.Scan(config.Path("www"))
+	if err != nil {
+		return nil, err
+	}
+	domains := make([]string, 0, len(sites))
+	for _, s := range sites {
+		domains = append(domains, s.Domain)
+	}
+	return domains, nil
 }
 
 // Close detiene todo de forma limpia y libera recursos. Se llama al cerrar la app.

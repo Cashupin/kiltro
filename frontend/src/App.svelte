@@ -3,8 +3,9 @@
   import { onMount, onDestroy } from 'svelte'
   import {
     GetAppRoot, GetServices, StartService, StopService, GetSites, ReloadSites,
+    GetHostsStatus, SyncHosts,
   } from '../wailsjs/go/main/App.js'
-  import { EventsOn } from '../wailsjs/runtime/runtime.js'
+  import { EventsOn, BrowserOpenURL } from '../wailsjs/runtime/runtime.js'
   import type { services, vhosts } from '../wailsjs/go/models'
 
   let root: string = '…'
@@ -16,6 +17,9 @@
   let skipped: vhosts.Skipped[] = []
   let reloading = false
   let sitesMsg = '' // resultado de "Recargar sitios"
+
+  let hostsStatus: services.HostsStatus | null = null
+  let syncing = false
 
   const labels: Record<string, string> = {
     stopped: 'Detenido',
@@ -57,6 +61,30 @@
     }
   }
 
+  async function refreshHosts() {
+    try {
+      hostsStatus = await GetHostsStatus()
+    } catch (e) {
+      hostsStatus = null
+    }
+  }
+
+  async function syncHosts() {
+    syncing = true
+    try {
+      await SyncHosts()
+    } catch (e) {
+      // el error queda en hostsStatus.error
+    } finally {
+      syncing = false
+      await refreshHosts()
+    }
+  }
+
+  function openSite(domain: string) {
+    BrowserOpenURL('http://' + domain)
+  }
+
   async function reloadSites() {
     reloading = true
     sitesMsg = ''
@@ -68,6 +96,7 @@
     } finally {
       reloading = false
       await refreshSites()
+      await refreshHosts()
     }
   }
 
@@ -90,16 +119,19 @@
 
   // El backend emite "services:changed" cada vez que cambia un estado
   // (incluido si un servicio se cae solo).
-  let off: () => void = () => {}
+  // "hosts:changed" llega cuando termina una actualización del hosts en segundo plano.
+  let offs: Array<() => void> = []
 
   onMount(async () => {
     root = await GetAppRoot()
-    off = EventsOn('services:changed', refresh)
+    offs.push(EventsOn('services:changed', refresh))
+    offs.push(EventsOn('hosts:changed', refreshHosts))
     await refresh()
     await refreshSites()
+    await refreshHosts()
   })
 
-  onDestroy(() => off())
+  onDestroy(() => offs.forEach((off) => off()))
 </script>
 
 <main>
@@ -146,7 +178,9 @@
       <tbody>
         {#each sites as site (site.name)}
           <tr>
-            <td class="name">{site.domain}</td>
+            <td class="name">
+              <a href={'http://' + site.domain} on:click|preventDefault={() => openSite(site.domain)}>{site.domain}</a>
+            </td>
             <td>{#if site.laravel}<span class="badge">Laravel</span>{/if}</td>
             <td class="muted"><code>{site.root}</code></td>
           </tr>
@@ -161,6 +195,23 @@
 
   {#if sitesMsg}
     <p class={sitesMsg === 'Sitios recargados' ? 'muted' : 'error'}>{sitesMsg}</p>
+  {/if}
+
+  {#if hostsStatus}
+    <p class="hosts">
+      Archivo hosts:
+      {#if hostsStatus.upToDate}
+        <span class="ok">al día</span>
+      {:else}
+        <span class="warn">desactualizado</span>
+        <button on:click={syncHosts} disabled={syncing}>
+          {syncing ? 'Esperando permiso…' : 'Actualizar hosts'}
+        </button>
+      {/if}
+    </p>
+    {#if hostsStatus.error}
+      <p class="error">{hostsStatus.error}</p>
+    {/if}
   {/if}
 </main>
 
@@ -221,6 +272,21 @@
 
   .warn {
     color: #ffd54f;
+  }
+
+  .ok {
+    color: #81c784;
+  }
+
+  .hosts {
+    margin-top: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+
+  a {
+    color: inherit;
   }
 
   .badge {

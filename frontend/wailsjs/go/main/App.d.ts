@@ -5,6 +5,8 @@ import {main} from '../models';
 
 export function GetAppRoot():Promise<string>;
 
+export function GetHostsStatus():Promise<services.HostsStatus>;
+
 export function GetServices():Promise<Array<services.Info>>;
 
 export function GetSites():Promise<main.SitesResult>;
@@ -14,3 +16,5 @@ export function ReloadSites():Promise<void>;
 export function StartService(arg1:string):Promise<void>;
 
 export function StopService(arg1:string):Promise<void>;
+
+export function SyncHosts():Promise<void>;

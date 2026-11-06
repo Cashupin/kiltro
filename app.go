@@ -72,7 +72,13 @@ func (a *App) StartService(name string) error {
 	if err := a.ready(); err != nil {
 		return err
 	}
-	return a.manager.Start(name)
+	if err := a.manager.Start(name); err != nil {
+		return err
+	}
+	if name == "nginx" {
+		go a.syncHostsInBackground()
+	}
+	return nil
 }
 
 // StopService detiene un servicio por nombre.
@@ -103,8 +109,37 @@ func (a *App) ReloadSites() error {
 	if err := a.ready(); err != nil {
 		return err
 	}
-	_, err := a.manager.ReloadSites()
+	if _, err := a.manager.ReloadSites(); err != nil {
+		return err
+	}
+	go a.syncHostsInBackground()
+	return nil
+}
+
+// GetHostsStatus dice si el archivo hosts tiene los dominios de www/.
+func (a *App) GetHostsStatus() (services.HostsStatus, error) {
+	if err := a.ready(); err != nil {
+		return services.HostsStatus{}, err
+	}
+	return a.manager.HostsStatus(), nil
+}
+
+// SyncHosts actualiza el hosts (botón "Actualizar hosts"). Puede mostrar el UAC.
+func (a *App) SyncHosts() error {
+	if err := a.ready(); err != nil {
+		return err
+	}
+	err := a.manager.SyncHosts()
+	runtime.EventsEmit(a.ctx, "hosts:changed")
 	return err
+}
+
+// syncHostsInBackground actualiza el hosts sin bloquear el botón que lo
+// disparó (el usuario puede tardar en responder el aviso de UAC). Al terminar
+// avisa al frontend; el error queda en HostsStatus.Error.
+func (a *App) syncHostsInBackground() {
+	_ = a.manager.SyncHosts()
+	runtime.EventsEmit(a.ctx, "hosts:changed")
 }
 
 func (a *App) ready() error {

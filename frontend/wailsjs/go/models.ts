@@ -37,6 +37,22 @@ export namespace main {
 
 export namespace services {
 	
+	export class HostsStatus {
+	    upToDate: boolean;
+	    domains: string[];
+	    error: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new HostsStatus(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.upToDate = source["upToDate"];
+	        this.domains = source["domains"];
+	        this.error = source["error"];
+	    }
+	}
 	export class Info {
 	    name: string;
 	    status: string;
