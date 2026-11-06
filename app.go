@@ -116,6 +116,12 @@ func (a *App) ReloadSites() error {
 	return nil
 }
 
+// OpenAdminer abre el gestor de base de datos en el navegador, con el
+// servidor y el usuario root ya completados.
+func (a *App) OpenAdminer() {
+	runtime.BrowserOpenURL(a.ctx, services.AdminerURL)
+}
+
 // GetHostsStatus dice si el archivo hosts tiene los dominios de www/.
 func (a *App) GetHostsStatus() (services.HostsStatus, error) {
 	if err := a.ready(); err != nil {

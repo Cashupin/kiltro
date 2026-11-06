@@ -84,6 +84,8 @@ export namespace vhosts {
 	    folder: string;
 	    root: string;
 	    laravel: boolean;
+	    tool: boolean;
+	    localOnly: boolean;
 	
 	    static createFrom(source: any = {}) {
 	        return new Site(source);
@@ -96,6 +98,8 @@ export namespace vhosts {
 	        this.folder = source["folder"];
 	        this.root = source["root"];
 	        this.laravel = source["laravel"];
+	        this.tool = source["tool"];
+	        this.localOnly = source["localOnly"];
 	    }
 	}
 	export class Skipped {

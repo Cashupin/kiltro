@@ -67,6 +67,12 @@ func ListenerPID(port int) (int, bool) {
 	return findListenerPID(port)
 }
 
+// ProcessName devuelve el nombre del ejecutable de un PID (ej. "mysqld.exe"),
+// o "" si no existe.
+func ProcessName(pid int) string {
+	return processName(pid)
+}
+
 // --- Tabla TCP (GetExtendedTcpTable de iphlpapi.dll) ---
 //
 // x/sys/windows no trae esta función, así que la cargamos de la DLL del sistema.

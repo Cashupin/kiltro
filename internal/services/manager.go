@@ -75,10 +75,12 @@ func NewManager(onChange func()) (*ServiceManager, error) {
 		env:     env,
 		logFile: f,
 		nginx:   nginx,
-		// Orden de arranque: PHP antes que Nginx (Nginx le pasa los .php).
+		// Orden de arranque: PHP y MySQL antes que Nginx (Nginx es la "puerta"
+		// de entrada; cuando atiende, lo demás ya está listo).
 		// StopAll los detiene en orden inverso.
 		services: []Service{
 			NewPHP(env),
+			NewMySQL(env),
 			nginx,
 		},
 	}
@@ -178,10 +180,10 @@ func (m *ServiceManager) List() []Info {
 	return out
 }
 
-// Sites devuelve los proyectos de www/ (escanea en el momento, es barato).
-// No toca archivos: para regenerar los vhosts está ReloadSites.
+// Sites devuelve los proyectos de www/ más las herramientas (Adminer). Escanea
+// en el momento (es barato). Los vhosts de Nginx se regeneran con ReloadSites.
 func (m *ServiceManager) Sites() ([]vhosts.Site, []vhosts.Skipped, error) {
-	return vhosts.Scan(config.Path("www"))
+	return allSites()
 }
 
 // ReloadSites regenera los vhosts y, si nginx corre, lo recarga sin cortarlo.
@@ -261,7 +263,7 @@ func (m *ServiceManager) SyncHosts() error {
 }
 
 func (m *ServiceManager) siteDomains() ([]string, error) {
-	sites, _, err := vhosts.Scan(config.Path("www"))
+	sites, _, err := allSites()
 	if err != nil {
 		return nil, err
 	}

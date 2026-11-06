@@ -3,7 +3,7 @@
   import { onMount, onDestroy } from 'svelte'
   import {
     GetAppRoot, GetServices, StartService, StopService, GetSites, ReloadSites,
-    GetHostsStatus, SyncHosts,
+    GetHostsStatus, SyncHosts, OpenAdminer,
   } from '../wailsjs/go/main/App.js'
   import { EventsOn, BrowserOpenURL } from '../wailsjs/runtime/runtime.js'
   import type { services, vhosts } from '../wailsjs/go/models'
@@ -20,6 +20,9 @@
 
   let hostsStatus: services.HostsStatus | null = null
   let syncing = false
+
+  // Adminer está instalado si aparece entre los sitios (como herramienta).
+  $: hasAdminer = sites.some((x) => x.tool && x.name === 'adminer')
 
   const labels: Record<string, string> = {
     stopped: 'Detenido',
@@ -151,6 +154,10 @@
             <button on:click={() => toggle(s)} disabled={busy[s.name]}>
               {s.status === 'running' || s.status === 'starting' ? 'Detener' : 'Iniciar'}
             </button>
+            {#if s.name === 'mysql' && hasAdminer}
+              <button on:click={() => OpenAdminer()} disabled={s.status !== 'running'}
+                title="Abre Adminer en el navegador (necesita PHP, MySQL y Nginx corriendo)">Gestor BD</button>
+            {/if}
           </td>
         </tr>
         {#if s.error}
@@ -181,7 +188,10 @@
             <td class="name">
               <a href={'http://' + site.domain} on:click|preventDefault={() => openSite(site.domain)}>{site.domain}</a>
             </td>
-            <td>{#if site.laravel}<span class="badge">Laravel</span>{/if}</td>
+            <td>
+              {#if site.laravel}<span class="badge">Laravel</span>{/if}
+              {#if site.tool}<span class="badge tool">Herramienta</span>{/if}
+            </td>
             <td class="muted"><code>{site.root}</code></td>
           </tr>
         {/each}
@@ -294,6 +304,9 @@
     border-radius: 3px;
     background: #f4511e;
     font-size: 0.85em;
+  }
+  .badge.tool {
+    background: #5c6bc0;
   }
 
   .detail {

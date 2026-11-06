@@ -22,6 +22,17 @@ type Site struct {
 	Folder  string `json:"folder"`  // ruta absoluta de la carpeta del proyecto
 	Root    string `json:"root"`    // carpeta que sirve Nginx (Folder o Folder\public)
 	Laravel bool   `json:"laravel"` // true si se detectó Laravel
+
+	// Sitios "herramienta" que agrega Kiltro (ej. Adminer), no carpetas de www/.
+	Tool bool `json:"tool"`
+	// Si es true, Nginx solo atiende peticiones desde esta PC (127.0.0.1).
+	LocalOnly bool `json:"localOnly"`
+}
+
+// Reserved son nombres que usa Kiltro para sus herramientas: una carpeta de
+// www/ con ese nombre se ignora (si no, chocaría con la herramienta).
+var Reserved = map[string]string{
+	"adminer": "Adminer (gestor de base de datos)",
 }
 
 // Skipped es una carpeta que se ignoró, con el motivo (para loguear/mostrar).
@@ -61,6 +72,10 @@ func Scan(wwwDir string) ([]Site, []Skipped, error) {
 		name := normalizeName(folder)
 		if !validName.MatchString(name) {
 			skipped = append(skipped, Skipped{folder, "el nombre no sirve como dominio (usa letras, números y guiones)"})
+			continue
+		}
+		if tool, reserved := Reserved[name]; reserved {
+			skipped = append(skipped, Skipped{folder, fmt.Sprintf("el nombre %s%s está reservado para %s", name, TLD, tool)})
 			continue
 		}
 		if other, dup := seen[name]; dup {

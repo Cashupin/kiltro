@@ -256,7 +256,7 @@ func (n *Nginx) ReloadSites() ([]vhosts.Site, error) {
 
 // generateSites escanea www/ y escribe un vhost por proyecto en etc/nginx/sites/.
 func (n *Nginx) generateSites(exe string) ([]vhosts.Site, error) {
-	sites, skipped, err := vhosts.Scan(config.Path("www"))
+	sites, skipped, err := allSites()
 	if err != nil {
 		return nil, err
 	}

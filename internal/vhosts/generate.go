@@ -25,6 +25,7 @@ type templateData struct {
 	Folder      string
 	Root        string
 	Laravel     bool
+	LocalOnly   bool
 	Port        int
 	FastcgiConf string
 }
@@ -54,6 +55,7 @@ func Generate(sites []Site, opts Options) error {
 			Folder:      filepath.ToSlash(s.Folder),
 			Root:        filepath.ToSlash(s.Root),
 			Laravel:     s.Laravel,
+			LocalOnly:   s.LocalOnly,
 			Port:        opts.Port,
 			FastcgiConf: filepath.ToSlash(opts.FastcgiConf),
 		})

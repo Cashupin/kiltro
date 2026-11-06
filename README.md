@@ -22,6 +22,8 @@ Los binarios van dentro de `bin/` relativo al ejecutable. En desarrollo, eso es
 | Nginx    | 1.30.4          | `bin/nginx/nginx-1.30.4/nginx.exe` | https://nginx.org/en/download.html (zip de Windows) |
 | PHP      | 8.3.33 (x64)    | `bin/php/php-8.3.33-Win32-vs16-x64/php-cgi.exe` | https://windows.php.net/download/ (zip; se recomienda **NTS**) |
 
+| MySQL    | 8.4.3 LTS (x64) | `bin/mysql/mysql-8.4.3-winx64/bin/mysqld.exe` | https://dev.mysql.com/downloads/mysql/ (ZIP Archive) |
+
 Se descomprimen los zip tal cual. Si hay varias versiones, por ahora se usa la mayor.
 
 - **Nginx:** la carpeta `nginx-<versión>` debe contener `nginx.exe`, `conf/mime.types` y `conf/fastcgi.conf`.
@@ -29,6 +31,35 @@ Se descomprimen los zip tal cual. Si hay varias versiones, por ahora se usa la m
   Si no hay `php.ini`, Kiltro lo crea desde `php.ini-development` con las extensiones típicas
   de Laravel activadas (curl, fileinfo, gd, intl, mbstring, openssl, pdo_mysql, pdo_sqlite,
   sqlite3, zip). Si ya existe, no lo toca. **No copies un `php.ini` de Laragon**: trae rutas de Laragon.
+- **MySQL:** la carpeta `mysql-<versión>` debe contener `bin/mysqld.exe` y `bin/mysqladmin.exe`.
+  No hace falta `my.ini`: Kiltro genera el suyo en `etc/mysql/my.ini`. Se recomienda el zip
+  oficial completo; la copia que trae Laragon no incluye `lib/private` (datos ICU) y MySQL
+  muestra una advertencia al arrancar (lo básico, incluido `REGEXP`, funciona igual).
+
+### MySQL
+
+- La primera vez, si `data/mysql` está vacía, Kiltro la inicializa: usuario **`root` sin
+  contraseña** en `127.0.0.1:3306` (lo que espera el `.env` por defecto de Laravel).
+- Kiltro crea además un usuario interno `kiltro_admin` que **solo puede apagar MySQL**; su
+  contraseña queda en `etc/mysql/kiltro-admin.cnf`. Así el apagado limpio sigue funcionando
+  aunque le pongas contraseña a `root`. No lo borres.
+- MySQL se detiene siempre con `mysqladmin shutdown`. Solo si no termina en 60 s se mata el
+  proceso (queda una ADVERTENCIA en `logs/kiltro.log`).
+- Log de MySQL: `logs/mysql/error.log`.
+
+### Gestor de base de datos (Adminer)
+
+| Herramienta | Versión probada | Archivo | Descarga |
+|-------------|-----------------|---------|----------|
+| Adminer     | 6.3.0 (MySQL)   | `bin/adminer/adminer-6.3.0-mysql.php` | https://www.adminer.org/ (versión "for MySQL") |
+
+- Si el archivo está en `bin/adminer/`, Kiltro sirve Adminer en `http://adminer.test`
+  (botón **Gestor BD** en la fila de MySQL; necesita PHP, MySQL y Nginx corriendo).
+- Permite entrar como `root` sin contraseña. Por eso `adminer.test` **solo responde desde
+  esta PC** (127.0.0.1): nadie de la red local puede entrar.
+- El nombre `adminer` queda reservado: una carpeta `www/adminer` se ignora.
+- Kiltro le pone su propio tema (claro/oscuro según Windows). El original está en
+  `templates/adminer/` y se copia a `etc/adminer/` al recargar sitios.
 
 ## Desarrollo
 

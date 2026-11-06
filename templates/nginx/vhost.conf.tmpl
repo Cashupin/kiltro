@@ -9,7 +9,11 @@ server {
     charset      utf-8;
 
     client_max_body_size 100m;
-
+{{if .LocalOnly}}
+    # Solo desde esta PC: nadie de la red local puede entrar.
+    allow 127.0.0.1;
+    deny  all;
+{{end}}
     # Front controller: si el archivo no existe, lo atiende index.php
     # (así funcionan las rutas de Laravel y de la mayoría de frameworks).
     location / {

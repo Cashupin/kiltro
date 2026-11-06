@@ -123,11 +123,20 @@ Trabajar **una etapa a la vez**. No adelantar trabajo de etapas siguientes.
 - [x] **Etapa 2:** PHP-CGI con workers + supervisión. Un vhost fijo de prueba que sirve un `phpinfo()`.
 - [x] **Etapa 3:** Escaneo de `www/`, generación automática de vhosts desde plantilla,
       bloque en el archivo hosts con elevación. Detección de proyectos Laravel (root en `/public`).
-- [ ] **Etapa 4:** MySQL (inicialización, arranque, apagado limpio).
+- [x] **Etapa 4:** MySQL (inicialización, arranque, apagado limpio).
+  - [x] 4a: MySQL: inicialización, arranque dentro del Job, apagado limpio con `mysqladmin`.
+  - [x] 4b: Gestor de BD con Adminer (un archivo PHP en `bin/adminer/`) servido en
+        `http://adminer.test`, solo accesible desde 127.0.0.1, con botón en la UI.
 - [ ] **Etapa 5:** Selector de versión de PHP.
 - [ ] **Etapa 6:** System tray (minimizar a bandeja, start/stop desde el menú).
 - [ ] **Etapa 7:** SSL con mkcert (`https://proyecto.test`).
 - [ ] **Etapa 8:** Redis, visor de logs, pantalla de configuración (puertos, carpeta www, etc.).
+- [ ] **Etapa 9:** Pulido de la UI y del flujo de uso.
+  - Ocultar las herramientas internas (`adminer.test`) de la lista de "Sitios": se usan desde
+    su botón, no como un proyecto más (siguen en Nginx y en el hosts).
+  - "Gestor BD" siempre disponible: si al pulsarlo faltan PHP, MySQL o Nginx, arrancarlos
+    (en ese orden) y recién ahí abrir Adminer.
+  - Mejorar el aspecto general de la ventana de Kiltro.
 
 ## Forma de trabajar
 
@@ -141,7 +150,7 @@ Trabajar **una etapa a la vez**. No adelantar trabajo de etapas siguientes.
 
 ## Estado actual
 
-**Etapas 1, 2 y 3 completas** (2026-11-06). Siguiente: Etapa 4 (MySQL: inicialización, arranque, apagado limpio).
+**Etapas 1, 2, 3 y 4 completas** (2026-11-06). Siguiente: Etapa 5 (selector de versión de PHP).
 
 Notas para las próximas etapas:
 - La plantilla svelte-ts de Wails v2.17.1 trae Svelte 5: se usa `mount()` en `main.ts`, pero
@@ -161,3 +170,11 @@ Notas para las próximas etapas:
   `AppRoot()` ni `KILTRO_ROOT` (no hereda el entorno): recibe todo por argumento y revalida que
   cada dominio sea `*.test`. Solo `127.0.0.1` (sin `::1`, Nginx escucha solo en IPv4).
   Backups en `etc/hosts-backup/`.
+- MySQL probado con 8.4.3. `my.ini` se genera en `etc/mysql/`. En Windows `mysqld` arranca un
+  proceso monitor + el servidor: si el monitor muere, el servidor huérfano se apaga con
+  `mysqladmin` (`stopOrphan`). Usuario interno `kiltro_admin` (solo SHUTDOWN), contraseña en
+  `etc/mysql/kiltro-admin.cnf`; `root` sin contraseña.
+- Adminer 6.3.0: `etc/adminer/index.php` es un envoltorio generado (permite root sin
+  contraseña) y el vhost es `LocalOnly` (solo 127.0.0.1). Tema propio en `templates/adminer/`
+  (en modo oscuro Adminer no carga `adminer.css`: `adminer-dark.css` se arma uniendo ambos).
+  `adminer` es nombre reservado en `www/`.

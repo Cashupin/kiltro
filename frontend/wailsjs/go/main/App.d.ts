@@ -11,6 +11,8 @@ export function GetServices():Promise<Array<services.Info>>;
 
 export function GetSites():Promise<main.SitesResult>;
 
+export function OpenAdminer():Promise<void>;
+
 export function ReloadSites():Promise<void>;
 
 export function StartService(arg1:string):Promise<void>;

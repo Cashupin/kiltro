@@ -1,0 +1,143 @@
+/*
+ * Tema de Kiltro para Adminer: colores del modo oscuro.
+ * Kiltro escribe etc/adminer/adminer-dark.css = adminer.css + este archivo
+ * (ver writeAdminerTheme en internal/services/adminer.go): en modo oscuro
+ * Adminer no carga adminer.css, así que la forma tiene que ir incluida.
+ * Además Adminer carga antes su propio dark.css: aquí se pisan sus colores.
+ */
+
+html {
+  --bg: #111827;
+  --fg: #e5e7eb;
+  --dim: #1f2937;
+  --lit: #1e2a44;
+  --card: #18212f;
+  --border: #2d3748;
+  --muted: #9ca3af;
+  --accent: #3b82f6;
+  --accent-hover: #60a5fa;
+  --accent-text: #ffffff;
+  --link: #93c5fd;
+  --shadow: 0 1px 3px rgba(0, 0, 0, .5);
+}
+
+/* Colores fijos del dark.css de Adminer que hay que pisar */
+h1,
+#h1 {
+  color: var(--fg);
+}
+h2 {
+  color: var(--fg);
+  border-color: var(--accent);
+}
+thead td,
+thead th,
+thead th a {
+  color: var(--fg);
+}
+#menu,
+#menu p,
+#logins,
+#tables {
+  border-color: var(--border);
+}
+#menu .active {
+  color: var(--accent);
+}
+.odds tbody tr:nth-child(2n) {
+  background: var(--bg);
+}
+tbody tr:hover td,
+tbody tr:hover th,
+#edit-fields tbody tr:hover td,
+#edit-fields tbody tr:hover th {
+  background: var(--lit);
+}
+.js .checkable .checked td,
+.js .checkable .checked th,
+.js .checkable .checked:hover td,
+.js .checkable .checked:hover th {
+  background: var(--lit);
+  color: var(--fg);
+}
+.js .checkable .checked a {
+  color: var(--link);
+}
+pre.jush {
+  background: var(--card);
+}
+
+mark {
+  color: #fff;
+  background: #6b5300;
+}
+:target {
+  background: var(--lit);
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, .3);
+}
+input.default {
+  box-shadow: 1px 1px 1px #888;
+}
+
+.error {
+  color: #fecaca;
+  background: #3b1d1d;
+  border-color: #7f1d1d;
+}
+.error b {
+  background: #4d2626;
+}
+.message {
+  color: #bbf7d0;
+  background: #12301c;
+  border-color: #166534;
+}
+
+/* Colores por tipo de dato en las grillas */
+.char { color: #c4a5f5; }
+.date { color: #86efac; }
+.enum { color: #fca5a5; }
+.binary { color: #93c5fd; }
+.time { color: var(--muted); }
+
+/* Los iconos de Adminer son GIF oscuros: se invierten para que se vean */
+.icon {
+  filter: invert(1);
+  background-color: #2d3748;
+}
+.icon:hover {
+  background-color: #c47d09; /* invertido se ve azul */
+}
+
+#schema .table {
+  border-color: var(--border);
+}
+#help {
+  border-color: var(--border);
+  background: var(--card);
+}
+
+/* Resaltado de SQL (mismos valores que el dark.css original de Adminer) */
+.jush {
+  --text-color: #ccc;
+  --bg-color: #111;
+  --border-color: #555;
+  --php-color: #cc9;
+  --string-color: #e6e;
+  --string-plain-color: #e6e;
+  --keyword-color: #acf;
+  --identifier-color: #f88;
+  --value-color: #e6e;
+  --number-color: #0c0;
+  --attribute-color: #3cc;
+  --js-bg-color: #036;
+  --css-bg-color: #404000;
+  --php-bg-color: #520;
+  --php-sql-bg-color: #404000;
+  --mark-bg-color: #fc03;
+}

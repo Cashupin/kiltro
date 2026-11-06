@@ -18,6 +18,10 @@ export function GetSites() {
   return window['go']['main']['App']['GetSites']();
 }
 
+export function OpenAdminer() {
+  return window['go']['main']['App']['OpenAdminer']();
+}
+
 export function ReloadSites() {
   return window['go']['main']['App']['ReloadSites']();
 }

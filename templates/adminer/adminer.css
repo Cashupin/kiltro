@@ -1,0 +1,327 @@
+/* Adminer design kiltro */
+/*
+ * Tema de Kiltro para Adminer (modo claro). Generado por Kiltro en
+ * etc/adminer/: NO EDITAR ahí, se sobrescribe. El original vive en
+ * templates/adminer/adminer.css (embebido en el exe).
+ *
+ * Adminer carga este archivo DESPUÉS de su CSS por defecto, así que solo
+ * pisamos lo que queremos cambiar. El modo oscuro está en adminer-dark.css
+ * (Adminer lo carga solo cuando Windows/el navegador está en modo oscuro).
+ */
+
+html {
+  --bg: #f6f7f9;       /* fondo general */
+  --fg: #1f2937;       /* texto */
+  --dim: #eceff3;      /* fondos suaves (cabeceras de tabla, hover) */
+  --lit: #eff6ff;      /* resaltado (filas marcadas, :target) */
+  --card: #ffffff;     /* tarjetas: menú, tablas, formularios */
+  --border: #d9dee5;
+  --muted: #6b7280;
+  --accent: #2563eb;   /* azul */
+  --accent-hover: #1d4ed8;
+  --accent-text: #ffffff;
+  --link: #1d4ed8;
+  --radius: 8px;
+  --shadow: 0 1px 2px rgba(16, 24, 40, .06), 0 1px 3px rgba(16, 24, 40, .08);
+}
+
+body {
+  font: 14px/1.45 "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+  color: var(--fg);
+  background: var(--bg);
+}
+
+/* ---------- enlaces ---------- */
+
+a,
+a:visited,
+button.link {
+  color: var(--link);
+}
+a:link:hover,
+a:visited:hover,
+button.link:hover {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+/* ---------- menú lateral ---------- */
+
+#menu {
+  background: var(--card);
+  border-right: 1px solid var(--border);
+  min-height: calc(100vh - 2em);
+  margin: 0;
+  box-sizing: border-box;
+}
+#menu p,
+#logins,
+#tables {
+  border-bottom: 1px solid var(--border);
+}
+#logins a,
+#tables a,
+#tables span {
+  background: transparent;
+}
+#tables li {
+  padding: 1px 0;
+}
+#tables a.active,
+#menu .active {
+  color: var(--accent);
+}
+
+/* "Adminer 6.x" arriba del menú */
+h1 {
+  font-size: 18px;
+  padding: 14px 16px;
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+  color: var(--fg);
+}
+#h1 {
+  color: var(--fg);
+  font-style: normal;
+  font-weight: 600;
+}
+.version,
+#version {
+  color: var(--muted);
+}
+
+/* ---------- barra superior (breadcrumb) ---------- */
+
+#breadcrumb {
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+  height: 2.4em;
+  line-height: 2.4em;
+  color: var(--muted);
+}
+#jump input[type="search"] {
+  border-color: var(--border);
+  background: var(--bg);
+}
+
+/* ---------- títulos ---------- */
+
+h2 {
+  font-size: 22px;
+  font-weight: 600;
+  background: transparent;
+  border-bottom: 2px solid var(--accent);
+  padding: .6em 0 .4em;
+  margin-inline-start: 0;
+  margin-inline-end: 20px;
+}
+h3 {
+  font-weight: 600;
+  font-size: 16px;
+}
+
+#content {
+  margin-top: 2.4em;
+}
+
+/* Pestañas: "Select data", "Show structure", "Alter table"... */
+.links a {
+  display: inline-block;
+  padding: 4px 12px;
+  margin: 0 6px 6px 0;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--card);
+}
+.links a.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-text);
+  font-weight: 600;
+}
+.links a:hover {
+  border-color: var(--accent);
+}
+
+/* ---------- tablas ---------- */
+
+table {
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  border-collapse: separate;
+  overflow: hidden;
+  font-size: 13px;
+}
+table,
+td,
+th,
+.column {
+  border-color: var(--border);
+}
+td,
+th {
+  padding: .4em .7em;
+}
+/* Sin borde exterior doble: la sombra y el radio hacen de marco */
+td:first-child,
+th:first-child {
+  border-inline-start-width: 0;
+}
+td:last-child,
+th:last-child {
+  border-inline-end-width: 0;
+}
+table >:first-child >:first-child > td,
+table >:first-child >:first-child > th {
+  border-top-width: 0;
+}
+tr:last-child > td,
+tr:last-child > th {
+  border-bottom-width: 0;
+}
+td table {
+  box-shadow: none;
+  border-radius: 0;
+}
+
+th {
+  background: var(--dim);
+  font-weight: 600;
+}
+thead td,
+thead th {
+  background: var(--dim);
+  color: var(--fg);
+}
+tbody tr:hover td,
+tbody tr:hover th {
+  background: var(--lit);
+}
+.odds tbody tr:nth-child(2n) {
+  background: var(--bg);
+}
+.js .checkable .checked td,
+.js .checkable .checked th {
+  background: var(--lit);
+}
+.column {
+  background: var(--card);
+  box-shadow: var(--shadow);
+}
+
+/* ---------- formularios ---------- */
+
+fieldset {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: .6em 1em;
+}
+legend {
+  font-weight: 600;
+  padding: 0 4px;
+}
+
+input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="image"]):not([type="file"]),
+select,
+textarea {
+  font: inherit;
+  color: var(--fg);
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 8px;
+}
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, .2);
+}
+
+/* Botones (Adminer usa <input type=submit>) */
+input[type="submit"],
+input[type="button"],
+button:not(.link):not(.icon) {
+  font: inherit;
+  font-weight: 600;
+  color: var(--accent-text);
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  padding: 4px 14px;
+  cursor: pointer;
+}
+input[type="submit"]:hover,
+input[type="button"]:hover,
+button:not(.link):not(.icon):hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+input[type="checkbox"],
+input[type="radio"] {
+  accent-color: var(--accent);
+}
+
+/* Editor de SQL */
+.sqlarea,
+pre.jush,
+textarea.sqlarea {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--card);
+}
+pre,
+.sqlarea,
+.sql,
+code {
+  font-family: Consolas, "Cascadia Mono", monospace;
+}
+code {
+  background: var(--dim);
+  border-radius: 4px;
+  padding: 1px 4px;
+}
+
+/* ---------- avisos ---------- */
+
+.error,
+.message {
+  border-radius: var(--radius);
+  padding: .6em 1em;
+}
+.error {
+  color: #991b1b;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+}
+.message {
+  color: #166534;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+}
+
+/* Botón de cerrar sesión, arriba a la derecha */
+.logout {
+  background: transparent;
+  box-shadow: none;
+  margin-top: .45em;
+}
+
+.footer {
+  box-shadow: 0 -6px 10px 6px var(--bg);
+}
+.footer > div {
+  background: var(--bg);
+}
+
+/* Iconos (+, x, mover) */
+.icon {
+  border-radius: 4px;
+}
+.icon:hover {
+  background-color: var(--accent);
+}

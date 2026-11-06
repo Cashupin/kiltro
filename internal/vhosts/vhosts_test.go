@@ -39,6 +39,7 @@ func TestScan(t *testing.T) {
 		"mi.tienda/",           // el punto no es válido
 		"mi tienda/",           // choca con Mi_Tienda
 		"suelto.txt",           // archivo: se ignora
+		"Adminer/",             // nombre reservado para la herramienta
 	)
 
 	sites, skipped, err := Scan(www)
@@ -66,8 +67,11 @@ func TestScan(t *testing.T) {
 		t.Errorf("los sitios deberían venir ordenados, el primero es %q", sites[0].Name)
 	}
 
-	if len(skipped) != 2 {
-		t.Fatalf("se esperaban 2 ignoradas (mi.tienda y el choque), llegaron: %+v", skipped)
+	if len(skipped) != 3 {
+		t.Fatalf("se esperaban 3 ignoradas (Adminer reservado, mi.tienda y el choque), llegaron: %+v", skipped)
+	}
+	if _, ok := got["adminer"]; ok {
+		t.Error("www/Adminer no debería ser un sitio (nombre reservado)")
 	}
 }
 
@@ -86,6 +90,7 @@ func TestGenerate(t *testing.T) {
 	sites := []Site{
 		{Name: "api", Domain: "api.test", Folder: `C:\www\api`, Root: `C:\www\api\public`, Laravel: true},
 		{Name: "blog", Domain: "blog.test", Folder: `C:\www\blog`, Root: `C:\www\blog`},
+		{Name: "adminer", Domain: "adminer.test", Root: `C:\etc\adminer`, Tool: true, LocalOnly: true},
 	}
 	err := Generate(sites, Options{SitesDir: sitesDir, FastcgiConf: `C:\nginx\conf\fastcgi.conf`, Port: 80})
 	if err != nil {
@@ -106,6 +111,14 @@ func TestGenerate(t *testing.T) {
 		if !strings.Contains(string(conf), want) {
 			t.Errorf("api.test.conf no contiene %q:\n%s", want, conf)
 		}
+	}
+
+	if strings.Contains(string(conf), "allow 127.0.0.1;") {
+		t.Error("un sitio normal no debería estar restringido a 127.0.0.1")
+	}
+	adminer, _ := os.ReadFile(filepath.Join(sitesDir, "adminer.test.conf"))
+	if !strings.Contains(string(adminer), "allow 127.0.0.1;") || !strings.Contains(string(adminer), "deny  all;") {
+		t.Errorf("adminer.test.conf debería estar restringido a 127.0.0.1:\n%s", adminer)
 	}
 
 	if _, err := os.Stat(filepath.Join(sitesDir, "viejo.test.conf")); !os.IsNotExist(err) {
