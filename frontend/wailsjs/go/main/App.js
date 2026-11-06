@@ -10,6 +10,14 @@ export function GetServices() {
   return window['go']['main']['App']['GetServices']();
 }
 
+export function GetSites() {
+  return window['go']['main']['App']['GetSites']();
+}
+
+export function ReloadSites() {
+  return window['go']['main']['App']['ReloadSites']();
+}
+
 export function StartService(arg1) {
   return window['go']['main']['App']['StartService'](arg1);
 }

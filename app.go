@@ -8,6 +8,7 @@ import (
 
 	"kiltro/internal/config"
 	"kiltro/internal/services"
+	"kiltro/internal/vhosts"
 )
 
 // App contiene los métodos que se exponen al frontend (bindings de Wails).
@@ -80,6 +81,30 @@ func (a *App) StopService(name string) error {
 		return err
 	}
 	return a.manager.Stop(name)
+}
+
+// SitesResult es lo que recibe la UI: los sitios y las carpetas ignoradas.
+type SitesResult struct {
+	Sites   []vhosts.Site    `json:"sites"`
+	Skipped []vhosts.Skipped `json:"skipped"`
+}
+
+// GetSites devuelve los proyectos encontrados en www/.
+func (a *App) GetSites() (SitesResult, error) {
+	if err := a.ready(); err != nil {
+		return SitesResult{}, err
+	}
+	sites, skipped, err := a.manager.Sites()
+	return SitesResult{Sites: sites, Skipped: skipped}, err
+}
+
+// ReloadSites regenera los vhosts y recarga nginx si está corriendo.
+func (a *App) ReloadSites() error {
+	if err := a.ready(); err != nil {
+		return err
+	}
+	_, err := a.manager.ReloadSites()
+	return err
 }
 
 func (a *App) ready() error {

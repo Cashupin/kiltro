@@ -1,14 +1,21 @@
 <script lang="ts">
   // Sintaxis clásica de Svelte (sin runes), ver CLAUDE.md.
   import { onMount, onDestroy } from 'svelte'
-  import { GetAppRoot, GetServices, StartService, StopService } from '../wailsjs/go/main/App.js'
+  import {
+    GetAppRoot, GetServices, StartService, StopService, GetSites, ReloadSites,
+  } from '../wailsjs/go/main/App.js'
   import { EventsOn } from '../wailsjs/runtime/runtime.js'
-  import type { services } from '../wailsjs/go/models'
+  import type { services, vhosts } from '../wailsjs/go/models'
 
   let root: string = '…'
   let list: services.Info[] = []
   let errorMsg: string = ''         // error general (ej. puerto ocupado)
   let busy: Record<string, boolean> = {} // servicio con una acción en curso
+
+  let sites: vhosts.Site[] = []
+  let skipped: vhosts.Skipped[] = []
+  let reloading = false
+  let sitesMsg = '' // resultado de "Recargar sitios"
 
   const labels: Record<string, string> = {
     stopped: 'Detenido',
@@ -40,6 +47,30 @@
     }
   }
 
+  async function refreshSites() {
+    try {
+      const r = await GetSites()
+      sites = r.sites ?? []
+      skipped = r.skipped ?? []
+    } catch (e) {
+      sitesMsg = String(e)
+    }
+  }
+
+  async function reloadSites() {
+    reloading = true
+    sitesMsg = ''
+    try {
+      await ReloadSites()
+      sitesMsg = 'Sitios recargados'
+    } catch (e) {
+      sitesMsg = String(e)
+    } finally {
+      reloading = false
+      await refreshSites()
+    }
+  }
+
   async function toggle(s: services.Info) {
     errorMsg = ''
     busy = { ...busy, [s.name]: true }
@@ -65,6 +96,7 @@
     root = await GetAppRoot()
     off = EventsOn('services:changed', refresh)
     await refresh()
+    await refreshSites()
   })
 
   onDestroy(() => off())
@@ -98,6 +130,37 @@
 
   {#if errorMsg}
     <p class="error">{errorMsg}</p>
+  {/if}
+
+  <h2>
+    Sitios
+    <button on:click={reloadSites} disabled={reloading}>
+      {reloading ? 'Recargando…' : 'Recargar sitios'}
+    </button>
+  </h2>
+
+  {#if sites.length === 0}
+    <p class="muted">No hay proyectos. Crea una carpeta dentro de <code>www\</code> y pulsa "Recargar sitios".</p>
+  {:else}
+    <table>
+      <tbody>
+        {#each sites as site (site.name)}
+          <tr>
+            <td class="name">{site.domain}</td>
+            <td>{#if site.laravel}<span class="badge">Laravel</span>{/if}</td>
+            <td class="muted"><code>{site.root}</code></td>
+          </tr>
+        {/each}
+      </tbody>
+    </table>
+  {/if}
+
+  {#each skipped as sk}
+    <p class="warn">Ignorada <code>www\{sk.folder}</code>: {sk.reason}</p>
+  {/each}
+
+  {#if sitesMsg}
+    <p class={sitesMsg === 'Sitios recargados' ? 'muted' : 'error'}>{sitesMsg}</p>
   {/if}
 </main>
 
@@ -142,6 +205,29 @@
   }
   .status.error {
     background: #c62828;
+  }
+
+  h2 {
+    margin-top: 2rem;
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .muted {
+    opacity: 0.6;
+  }
+
+  .warn {
+    color: #ffd54f;
+  }
+
+  .badge {
+    padding: 0.1rem 0.5rem;
+    border-radius: 3px;
+    background: #f4511e;
+    font-size: 0.85em;
   }
 
   .detail {

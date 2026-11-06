@@ -14,6 +14,7 @@ import (
 
 	"kiltro/internal/config"
 	"kiltro/internal/procutil"
+	"kiltro/internal/vhosts"
 )
 
 const (
@@ -84,6 +85,9 @@ func (n *Nginx) Start() error {
 		return n.fail(err)
 	}
 	if err := writeNginxConf(exe); err != nil {
+		return n.fail(err)
+	}
+	if _, err := n.generateSites(exe); err != nil {
 		return n.fail(err)
 	}
 
@@ -218,6 +222,59 @@ func (n *Nginx) Stop() error {
 	}
 }
 
+// ReloadSites vuelve a escanear www/ y regenera los vhosts. Si nginx está
+// corriendo, valida la config y la aplica con `nginx -s reload`, que recarga sin
+// cortar las conexiones en curso. Si está detenido, solo regenera los archivos.
+func (n *Nginx) ReloadSites() ([]vhosts.Site, error) {
+	exe, err := nginxExe()
+	if err != nil {
+		return nil, err
+	}
+	// nginx.conf también se regenera: si es la primera vez, todavía no tiene el
+	// include de sites/.
+	if err := writeNginxConf(exe); err != nil {
+		return nil, err
+	}
+	sites, err := n.generateSites(exe)
+	if err != nil {
+		return nil, err
+	}
+
+	if n.Status() != StatusRunning {
+		return sites, nil
+	}
+
+	if out, err := runNginxCommand(n.env.Job, exe, "-t"); err != nil {
+		return sites, fmt.Errorf("la configuración de nginx tiene errores (se sigue usando la anterior): %s", out)
+	}
+	if out, err := runNginxCommand(n.env.Job, exe, "-s", "reload"); err != nil {
+		return sites, fmt.Errorf("`nginx -s reload` falló: %s", out)
+	}
+	n.env.Log.Printf("[nginx] recargado con %d sitio(s)", len(sites))
+	return sites, nil
+}
+
+// generateSites escanea www/ y escribe un vhost por proyecto en etc/nginx/sites/.
+func (n *Nginx) generateSites(exe string) ([]vhosts.Site, error) {
+	sites, skipped, err := vhosts.Scan(config.Path("www"))
+	if err != nil {
+		return nil, err
+	}
+	for _, s := range skipped {
+		n.env.Log.Printf("[nginx] carpeta www\\%s ignorada: %s", s.Folder, s.Reason)
+	}
+
+	err = vhosts.Generate(sites, vhosts.Options{
+		SitesDir:    config.Path("etc", "nginx", "sites"),
+		FastcgiConf: filepath.Join(filepath.Dir(exe), "conf", "fastcgi.conf"),
+		Port:        nginxPort,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return sites, nil
+}
+
 // --- helpers ---
 
 // nginxExe busca bin/nginx/nginx-*/nginx.exe. Si hay varias versiones, usa la
@@ -292,6 +349,7 @@ func writeNginxConf(exe string) error {
 		config.Path("etc", "nginx", "temp"),
 		config.Path("logs", "nginx"),
 		defaultRoot,
+		config.Path("etc", "nginx", "sites"),
 	} {
 		if err := os.MkdirAll(dir, 0o755); err != nil {
 			return fmt.Errorf("no se pudo crear %s: %w", dir, err)
@@ -331,8 +389,10 @@ http {
     scgi_temp_path         "etc/nginx/temp/scgi";
 
 %[4]s
+    # Server por defecto: atiende localhost y cualquier dominio que no tenga
+    # vhost propio (muestra el phpinfo de prueba).
     server {
-        listen       %[3]d;
+        listen       %[3]d default_server;
         server_name  localhost;
         root         "%[5]s";
         index        index.php index.html;
@@ -348,8 +408,12 @@ http {
             fastcgi_pass  php_workers;
         }
     }
+
+    # Un archivo por proyecto de www/ (los genera internal/vhosts).
+    include "%[7]s/*.conf";
 }
-`, nginxErrorLog, mimeTypes, nginxPort, phpUpstream(), filepath.ToSlash(defaultRoot), fastcgiConf)
+`, nginxErrorLog, mimeTypes, nginxPort, phpUpstream(), filepath.ToSlash(defaultRoot), fastcgiConf,
+		filepath.ToSlash(config.Path("etc", "nginx", "sites")))
 
 	path := config.Path(filepath.FromSlash(nginxConfRel))
 	if err := os.WriteFile(path, []byte(conf), 0o644); err != nil {

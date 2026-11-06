@@ -1,0 +1,30 @@
+# Generado por Kiltro para {{.Domain}}. NO EDITAR: se regenera al recargar sitios.
+# Carpeta: {{.Folder}}{{if .Laravel}}
+# Laravel detectado: se sirve desde /public{{end}}
+server {
+    listen       {{.Port}};
+    server_name  {{.Domain}};
+    root         "{{.Root}}";
+    index        index.php index.html index.htm;
+    charset      utf-8;
+
+    client_max_body_size 100m;
+
+    # Front controller: si el archivo no existe, lo atiende index.php
+    # (así funcionan las rutas de Laravel y de la mayoría de frameworks).
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    location ~ \.php$ {
+        # Si el .php no existe, 404 (sin esto, PHP intentaría adivinar el script).
+        try_files $uri =404;
+        include       "{{.FastcgiConf}}";
+        fastcgi_pass  php_workers;
+    }
+
+    # No servir archivos ocultos (.env, .git...), salvo .well-known.
+    location ~ /\.(?!well-known) {
+        deny all;
+    }
+}

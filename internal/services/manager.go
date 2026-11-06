@@ -9,6 +9,7 @@ import (
 
 	"kiltro/internal/config"
 	"kiltro/internal/procutil"
+	"kiltro/internal/vhosts"
 )
 
 // Env es lo que el manager le pasa a cada servicio al crearlo: lo que todos
@@ -34,6 +35,7 @@ type ServiceManager struct {
 	env      *Env
 	services []Service // en orden de arranque
 	logFile  *os.File
+	nginx    *Nginx // acceso directo para lo que es propio de nginx (sitios)
 
 	// opMu evita que dos Start/Stop corran a la vez (ej. doble click en el botón).
 	// List() no lo usa, para que la UI pueda leer estados mientras se detiene algo.
@@ -64,14 +66,16 @@ func NewManager(onChange func()) (*ServiceManager, error) {
 	}
 	env := &Env{Job: job, Log: logger, Notify: onChange}
 
+	nginx := NewNginx(env)
 	m := &ServiceManager{
 		env:     env,
 		logFile: f,
+		nginx:   nginx,
 		// Orden de arranque: PHP antes que Nginx (Nginx le pasa los .php).
 		// StopAll los detiene en orden inverso.
 		services: []Service{
 			NewPHP(env),
-			NewNginx(env),
+			nginx,
 		},
 	}
 	logger.Printf("Kiltro iniciado. Raíz: %s", config.Path())
@@ -168,6 +172,25 @@ func (m *ServiceManager) List() []Info {
 		out = append(out, info)
 	}
 	return out
+}
+
+// Sites devuelve los proyectos de www/ (escanea en el momento, es barato).
+// No toca archivos: para regenerar los vhosts está ReloadSites.
+func (m *ServiceManager) Sites() ([]vhosts.Site, []vhosts.Skipped, error) {
+	return vhosts.Scan(config.Path("www"))
+}
+
+// ReloadSites regenera los vhosts y, si nginx corre, lo recarga sin cortarlo.
+func (m *ServiceManager) ReloadSites() ([]vhosts.Site, error) {
+	m.opMu.Lock()
+	defer m.opMu.Unlock()
+
+	m.env.Log.Printf("[nginx] recargando sitios...")
+	sites, err := m.nginx.ReloadSites()
+	if err != nil {
+		m.env.Log.Printf("[nginx] error al recargar sitios: %v", err)
+	}
+	return sites, err
 }
 
 // Close detiene todo de forma limpia y libera recursos. Se llama al cerrar la app.
