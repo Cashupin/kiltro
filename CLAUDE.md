@@ -127,7 +127,7 @@ Trabajar **una etapa a la vez**. No adelantar trabajo de etapas siguientes.
   - [x] 4a: MySQL: inicialización, arranque dentro del Job, apagado limpio con `mysqladmin`.
   - [x] 4b: Gestor de BD con Adminer (un archivo PHP en `bin/adminer/`) servido en
         `http://adminer.test`, solo accesible desde 127.0.0.1, con botón en la UI.
-- [ ] **Etapa 5:** Selector de versión de PHP.
+- [x] **Etapa 5:** Selector de versión de PHP.
 - [ ] **Etapa 6:** System tray (minimizar a bandeja, start/stop desde el menú).
 - [ ] **Etapa 7:** SSL con mkcert (`https://proyecto.test`).
 - [ ] **Etapa 8:** Redis, visor de logs, pantalla de configuración (puertos, carpeta www, etc.).
@@ -150,7 +150,7 @@ Trabajar **una etapa a la vez**. No adelantar trabajo de etapas siguientes.
 
 ## Estado actual
 
-**Etapas 1, 2, 3 y 4 completas** (2026-11-06). Siguiente: Etapa 5 (selector de versión de PHP).
+**Etapas 1 a 5 completas** (2026-11-06). Siguiente: Etapa 6 (system tray: proponer librería antes de implementar).
 
 Notas para las próximas etapas:
 - La plantilla svelte-ts de Wails v2.17.1 trae Svelte 5: se usa `mount()` en `main.ts`, pero
@@ -161,7 +161,9 @@ Notas para las próximas etapas:
   el exe) hacia `etc/nginx/sites/`; "Recargar sitios" valida con `-t` y aplica con `-s reload`.
 - Si el master de un servicio muere de golpe, sus hijos NO mueren solos en Windows: usar
   `procutil.KillTree` al detectar la salida (ver `nginx.go`, `watch`).
-- PHP probado con 8.3.33 (build TS de Laragon; para FastCGI se recomienda NTS, revisar en la etapa 5).
+- PHP probado con 8.4.27 NTS (por defecto, la más nueva) y 8.3.33 TS (de Laragon). Versión elegida
+  en `config.json` (`internal/config/config.go`, por ahora solo el campo `php`); el orden es
+  numérico (`phpversions.go`). Cambiar de versión reinicia solo PHP, Nginx no se toca.
   `php.ini` vive junto a cada versión y Kiltro solo lo crea si falta (desde `php.ini-development`);
   `extension_dir` se pasa con `-d` al arrancar. 4 workers en 9000-9003 detrás de `upstream php_workers`.
 - La página de prueba (phpinfo) está en `etc/nginx/default/`, fuera de `www/` a propósito.
