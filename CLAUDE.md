@@ -167,7 +167,7 @@ Trabajar **una etapa a la vez**. No adelantar trabajo de etapas siguientes.
     (zip) tiene que seguir funcionando igual.
   - Decidido: el archivo hosts se sigue escribiendo con UAC cada vez que cambian los dominios
     (no dar permisos de escritura permanentes sobre el hosts ni correr Kiltro como admin).
-  - [ ] 10a: Binarios reproducibles y licencias. `tools/bins.json` (versión, URL, SHA-256 de cada
+  - [x] 10a: Binarios reproducibles y licencias. `tools/bins.json` (versión, URL, SHA-256 de cada
         binario) + `tools/fetch-bins.ps1` (descarga, verifica, descomprime en `bin/`, recorta MySQL;
         mkcert con `go install`). `LICENSE` (GPL-3.0), `THIRD-PARTY-NOTICES.md`, README "Cómo compilar".
   - [ ] 10b: Cambios en Kiltro para el instalador: no reinstalar la CA si ya está en el almacén de
@@ -194,7 +194,7 @@ Trabajar **una etapa a la vez**. No adelantar trabajo de etapas siguientes.
 
 ## Estado actual
 
-**Etapas 1 a 9 completas** (2026-11-07). Siguiente: 10a (binarios reproducibles y licencias).
+**Etapas 1 a 9 completas y 10a** (2026-11-07). Siguiente: 10b (cambios en Kiltro para el instalador).
 
 Notas para las próximas etapas:
 - La plantilla svelte-ts de Wails v2.17.1 trae Svelte 5: se usa `mount()` en `main.ts`, pero
@@ -274,3 +274,8 @@ Notas para las próximas etapas:
 - Desarrollo: `devmode_dev.go` / `devmode_prod.go` (etiqueta de build `dev`, la que usa
   `wails dev`). `App.GetDevWarning` muestra una franja en la UI si `wails dev` corre sin
   `KILTRO_ROOT` (la raíz sería `build\bin`). En `wails build` no existe.
+- Binarios (10a): `tools/bins.json` + `tools/fetch-bins.ps1` (PowerShell 5.1, descomprime con
+  `tar.exe` de Windows: el `tar` de Git Bash no abre zip). Para cambiar una versión, actualizar
+  `bins.json` (sha256 de la fuente oficial) y el README. MySQL recortado (sin .pdb, .lib,
+  include, mecab, plugin/debug): ~275 MB, probado con initialize + REGEXP. Licencia GPL-3.0
+  (Cashupin); licencias de terceros en `THIRD-PARTY-NOTICES.md`.
