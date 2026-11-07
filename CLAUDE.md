@@ -157,7 +157,7 @@ Trabajar **una etapa a la vez**. No adelantar trabajo de etapas siguientes.
       elegida; la carpeta `shims` se agrega UNA vez al PATH del usuario (HKCU, sin admin).
       Al cambiar de versión solo se reescriben los .bat (el PATH no se vuelve a tocar).
     - Botón para quitarla del PATH. Avisar que las terminales ya abiertas no lo ven.
-- [ ] **Etapa 10:** Instalador (NSIS, el que soporta `wails build -nsis`) y versión publicable.
+- [x] **Etapa 10:** Instalador (NSIS, el que soporta `wails build -nsis`) y versión publicable.
   - Decidido: binarios DENTRO del instalador (funciona sin internet). Solo PHP 8.4 NTS (las demás
     versiones, con el descargador de la Etapa 11). Sin regla de firewall (Nginx escucha en
     127.0.0.1; con "red local" Windows pregunta una vez). Licencia GPL-3.0, copyright Cashupin.
@@ -177,7 +177,7 @@ Trabajar **una etapa a la vez**. No adelantar trabajo de etapas siguientes.
         "Agregar o quitar programas", pedir cerrar Kiltro si está abierto, conservar `www\`,
         `data\` y `config.json` al actualizar; desinstalador con casilla "borrar también mis
         proyectos y bases de datos" (desmarcada por defecto).
-  - [ ] 10d: `tools/release.ps1` (genera `kiltro-setup-<versión>.exe` y `kiltro-portable-<versión>.zip`),
+  - [x] 10d: `tools/release.ps1` (genera `kiltro-setup-<versión>.exe` y `kiltro-portable-<versión>.zip`),
         prueba de instalar/desinstalar en Windows Sandbox, pasos para GitHub Releases.
 - [ ] **Etapa 11:** Descargador de versiones de PHP (lista de windows.php.net, incluidas las del
       archivo histórico como 7.4; descarga, verifica SHA-256 y deja la carpeta en `bin/php/`).
@@ -194,7 +194,7 @@ Trabajar **una etapa a la vez**. No adelantar trabajo de etapas siguientes.
 
 ## Estado actual
 
-**Etapas 1 a 9 completas, 10a, 10b y 10c** (2026-11-07). Siguiente: 10d (release.ps1, prueba en Windows Sandbox, GitHub Releases).
+**Etapas 1 a 10 completas** (2026-11-07). Versión 0.1.0 armada (sin publicar). Siguiente: Etapa 11 (descargador de versiones de PHP).
 
 Notas para las próximas etapas:
 - La plantilla svelte-ts de Wails v2.17.1 trae Svelte 5: se usa `mount()` en `main.ts`, pero
