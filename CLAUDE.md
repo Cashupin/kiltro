@@ -192,8 +192,16 @@ Trabajar **una etapa a la vez**. No adelantar trabajo de etapas siguientes.
   - [x] 11b: Mensajes del backend (errores, estados, detalles que llegan a la UI).
   - [x] 11c: Instalador bilingüe, `LEEME.txt` en dos idiomas, capturas en inglés para README.en.md.
   - [x] 11d: Publicar la 0.1.0 (release.ps1, repo público, tag y GitHub Release).
-- [ ] **Etapa 12:** Descargador de versiones de PHP (lista de windows.php.net, incluidas las del
-      archivo histórico como 7.4; descarga, verifica SHA-256 y deja la carpeta en `bin/php/`).
+- [ ] **Etapa 12:** Descargador de versiones de PHP y Node → 0.2.0.
+  - PHP: lista de windows.php.net (incluidas las del archivo histórico, ej. 7.4); descarga,
+    verifica SHA-256 y deja la carpeta en `bin/php/`. Aparece en el desplegable de PHP.
+  - Node (opcional, decidido 2026-11-07): NO va en el instalador (pesa ~100 MB y choca con
+    nvm/fnm/Volta que mucha gente ya usa). Se descarga desde nodejs.org (con SHASUMS256) a
+    `bin/node/<versión>/`, y `node.bat`, `npm.bat`, `npx.bat` van en `bin/shims` (mismo sistema
+    de la 9d) SOLO si el usuario lo activa. Configuración avisa si ya hay un Node instalado.
+- [ ] **Etapa 13:** Extensiones de PHP desde la interfaz → 0.3.0. En Configuración, casillas por
+      versión de PHP (bcmath, exif, sodium, redis, ...) que activan/desactivan la línea
+      `extension=` en el `php.ini` de esa versión y reinician PHP si corre.
 
 ## Forma de trabajar
 
@@ -207,7 +215,7 @@ Trabajar **una etapa a la vez**. No adelantar trabajo de etapas siguientes.
 
 ## Estado actual
 
-**Etapas 1 a 11 completas** (2026-11-07). **Kiltro 0.1.0 publicado** (repo público, tag `v0.1.0`, GitHub Release con setup, zip portable y SHA256SUMS). Siguiente: Etapa 12 (descargador de versiones de PHP) → 0.2.0.
+**Etapas 1 a 11 completas** (2026-11-07). **Kiltro 0.1.0 publicado** (repo público, tag `v0.1.0`, GitHub Release con setup, zip portable y SHA256SUMS). Siguiente: Etapa 12 (descargador de PHP y Node) → 0.2.0; después Etapa 13 (extensiones de PHP) → 0.3.0.
 
 Notas para las próximas etapas:
 - La plantilla svelte-ts de Wails v2.17.1 trae Svelte 5: se usa `mount()` en `main.ts`, pero
