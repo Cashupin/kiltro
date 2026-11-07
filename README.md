@@ -12,10 +12,23 @@ MySQL y Redis portables, con vhosts `*.test` automáticos. Hecho con Wails v2 (G
 
 Verificar con `wails doctor`.
 
-## Binarios (se descargan a mano, no van al repo)
+## Binarios (no van al repo)
 
 Los binarios van dentro de `bin/` relativo al ejecutable. En desarrollo, eso es
 `runtime/bin/` (ver más abajo).
+
+**La forma fácil:** el script descarga todo, verifica el SHA-256 de cada archivo y lo deja
+en su carpeta (lo que ya está, se salta):
+
+```powershell
+.\tools\fetch-bins.ps1                  # a runtime\bin
+.\tools\fetch-bins.ps1 -Dest D:\x\bin   # a otra carpeta
+```
+
+Las versiones, URLs y checksums están en [`tools/bins.json`](tools/bins.json). Necesita
+Go en el PATH (mkcert se compila con `go install`). Si PowerShell no deja correr scripts, usar
+`powershell -ExecutionPolicy Bypass -File tools\fetch-bins.ps1`. A mano, son estos (Composer, Adminer y
+mkcert, en sus secciones más abajo):
 
 | Servicio | Versión probada | Carpeta                           | Descarga                                   |
 |----------|-----------------|-----------------------------------|--------------------------------------------|
@@ -229,3 +242,20 @@ Genera `build/bin/kiltro.exe`.
 ```bat
 go test ./internal/...
 ```
+
+## Cómo compilar Kiltro desde cero
+
+1. Instalar lo de "Requisitos para desarrollar" (Go, Node.js, Wails CLI).
+2. Clonar el repo y descargar los binarios: `.\tools\fetch-bins.ps1` (unos 400 MB).
+3. Desarrollo: `$env:KILTRO_ROOT = "$PWD\runtime"; wails dev`.
+4. Compilar: `wails build` (sale `build\bin\kiltro.exe`).
+
+## Licencia
+
+Kiltro es software libre bajo la licencia **GPL-3.0** (ver [`LICENSE`](LICENSE)).
+Copyright (C) 2026 Cashupin.
+
+Puedes usarlo, modificarlo y redistribuirlo; si distribuyes una versión modificada, tiene
+que ser también GPL-3.0 y con su código fuente. Los programas que incluye (Nginx, PHP,
+MySQL, Redis, Composer, Adminer, mkcert) tienen sus propias licencias: ver
+[`THIRD-PARTY-NOTICES.md`](THIRD-PARTY-NOTICES.md).

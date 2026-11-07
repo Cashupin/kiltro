@@ -1,0 +1,81 @@
+{
+  "_comment": "Binarios que descarga tools/fetch-bins.ps1. Para cambiar una versión: actualizar version, urls, sha256, zipDir y target (y el README). El sha256 sale de la página oficial cuando la publica (PHP, Composer) o se calcula tras descargar del sitio oficial y comparar con el MD5/firma publicada (MySQL). target es relativo a bin/. remove: rutas (con comodines) que se borran después de descomprimir.",
+  "bins": [
+    {
+      "name": "nginx",
+      "version": "1.30.4",
+      "kind": "zip",
+      "urls": ["https://nginx.org/download/nginx-1.30.4.zip"],
+      "sha256": "159294214d403f34f0bb4ae598801ab1f6a0d8c8da707f8f08748e294a222a01",
+      "zipDir": "nginx-1.30.4",
+      "target": "nginx/nginx-1.30.4",
+      "remove": [],
+      "license": "nginx/nginx-1.30.4/docs/LICENSE"
+    },
+    {
+      "name": "php",
+      "version": "8.4.27 NTS",
+      "kind": "zip",
+      "urls": [
+        "https://downloads.php.net/~windows/releases/php-8.4.27-1-nts-Win32-vs17-x64.zip",
+        "https://downloads.php.net/~windows/releases/archives/php-8.4.27-1-nts-Win32-vs17-x64.zip"
+      ],
+      "sha256": "dbae154a0a89791f36c3d48e68bae797878333e7d6cb5721e74617de59b63ab7",
+      "zipDir": "",
+      "target": "php/php-8.4.27-1-nts-Win32-vs17-x64",
+      "remove": [],
+      "license": "php/php-8.4.27-1-nts-Win32-vs17-x64/license.txt"
+    },
+    {
+      "name": "mysql",
+      "version": "8.4.3 LTS",
+      "kind": "zip",
+      "urls": ["https://cdn.mysql.com/archives/mysql-8.4/mysql-8.4.3-winx64.zip"],
+      "sha256": "e401d0420486d91bd14eda7b6b449498007863ca340991e529adff4787352e7e",
+      "zipDir": "mysql-8.4.3-winx64",
+      "target": "mysql/mysql-8.4.3-winx64",
+      "remove": ["bin/*.pdb", "bin/*.lib", "lib/*.lib", "lib/plugin/debug", "lib/plugin/*.pdb", "lib/mecab", "include"],
+      "license": "mysql/mysql-8.4.3-winx64/LICENSE"
+    },
+    {
+      "name": "redis",
+      "version": "5.0.14.1",
+      "kind": "zip",
+      "urls": ["https://github.com/tporadowski/redis/releases/download/v5.0.14.1/Redis-x64-5.0.14.1.zip"],
+      "sha256": "018ea18a35876383cbb5f4cd0258adfc87747cf9d619bce1cf73a2e36f720ccf",
+      "zipDir": "",
+      "target": "redis/redis-x64-5.0.14.1",
+      "remove": ["*.pdb"],
+      "license": "https://github.com/tporadowski/redis/blob/win-5.0.14.1/COPYING"
+    },
+    {
+      "name": "composer",
+      "version": "2.10.2",
+      "kind": "file",
+      "urls": ["https://getcomposer.org/download/2.10.2/composer.phar"],
+      "sha256": "5ee7125f8a30a34d246cefdc0bc85b8a783b28f2aec968994118512350d28027",
+      "target": "composer/composer.phar",
+      "remove": [],
+      "license": "https://github.com/composer/composer/blob/main/LICENSE"
+    },
+    {
+      "name": "adminer",
+      "version": "6.3.0 (MySQL)",
+      "kind": "file",
+      "urls": ["https://github.com/vrana/adminer/releases/download/v6.3.0/adminer-6.3.0-mysql.php"],
+      "sha256": "33af3816a08213ae7579f8416e66d7d70054d6bcd70516d4ad3124f4b8b5c1e0",
+      "target": "adminer/adminer-6.3.0-mysql.php",
+      "remove": [],
+      "license": "https://github.com/vrana/adminer/blob/master/readme.txt"
+    },
+    {
+      "name": "mkcert",
+      "version": "1.4.4",
+      "kind": "go",
+      "module": "filippo.io/mkcert@v1.4.4",
+      "target": "mkcert",
+      "remove": [],
+      "license": "https://github.com/FiloSottile/mkcert/blob/v1.4.4/LICENSE"
+    }
+  ]
+}

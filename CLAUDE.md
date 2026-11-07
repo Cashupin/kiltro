@@ -157,16 +157,30 @@ Trabajar **una etapa a la vez**. No adelantar trabajo de etapas siguientes.
       elegida; la carpeta `shims` se agrega UNA vez al PATH del usuario (HKCU, sin admin).
       Al cambiar de versión solo se reescriben los .bat (el PATH no se vuelve a tocar).
     - Botón para quitarla del PATH. Avisar que las terminales ya abiertas no lo ven.
-- [ ] **Etapa 10:** Instalador (NSIS, el que soporta `wails build -nsis`).
-  - Corre una vez como admin para:
-    - instalar la CA de mkcert en el almacén de la **máquina** (así no aparece el aviso de
-      seguridad de Windows al activar HTTPS);
-    - (si hace falta) regla de firewall para Nginx.
+- [ ] **Etapa 10:** Instalador (NSIS, el que soporta `wails build -nsis`) y versión publicable.
+  - Decidido: binarios DENTRO del instalador (funciona sin internet). Solo PHP 8.4 NTS (las demás
+    versiones, con el descargador de la Etapa 11). Sin regla de firewall (Nginx escucha en
+    127.0.0.1; con "red local" Windows pregunta una vez). Licencia GPL-3.0, copyright Cashupin.
+    El repo tiene la receta; el instalador y el zip se suben a GitHub Releases (no al repo).
   - Instalar en una carpeta escribible sin admin (ej. `C:\kiltro`, como Laragon), NO en
     `Program Files`: Kiltro escribe `etc/`, `data/` y `logs/` junto al exe. La versión portable
-    (zip) tiene que seguir funcionando igual. El desinstalador quita la CA y el bloque del hosts.
+    (zip) tiene que seguir funcionando igual.
   - Decidido: el archivo hosts se sigue escribiendo con UAC cada vez que cambian los dominios
     (no dar permisos de escritura permanentes sobre el hosts ni correr Kiltro como admin).
+  - [ ] 10a: Binarios reproducibles y licencias. `tools/bins.json` (versión, URL, SHA-256 de cada
+        binario) + `tools/fetch-bins.ps1` (descarga, verifica, descomprime en `bin/`, recorta MySQL;
+        mkcert con `go install`). `LICENSE` (GPL-3.0), `THIRD-PARTY-NOTICES.md`, README "Cómo compilar".
+  - [ ] 10b: Cambios en Kiltro para el instalador: no reinstalar la CA si ya está en el almacén de
+        la máquina; flags `--install-ca` (crea la CA y la registra en la máquina) y `--uninstall`
+        (quita CA, bloque del hosts y `bin\shims` del PATH).
+  - [ ] 10c: Script NSIS (`build/windows/installer/project.nsi`): `C:\kiltro`, accesos directos,
+        "Agregar o quitar programas", pedir cerrar Kiltro si está abierto, conservar `www\`,
+        `data\` y `config.json` al actualizar; desinstalador con casilla "borrar también mis
+        proyectos y bases de datos" (desmarcada por defecto).
+  - [ ] 10d: `tools/release.ps1` (genera `kiltro-setup-<versión>.exe` y `kiltro-portable-<versión>.zip`),
+        prueba de instalar/desinstalar en Windows Sandbox, pasos para GitHub Releases.
+- [ ] **Etapa 11:** Descargador de versiones de PHP (lista de windows.php.net, incluidas las del
+      archivo histórico como 7.4; descarga, verifica SHA-256 y deja la carpeta en `bin/php/`).
 
 ## Forma de trabajar
 
@@ -180,7 +194,7 @@ Trabajar **una etapa a la vez**. No adelantar trabajo de etapas siguientes.
 
 ## Estado actual
 
-**Etapas 1 a 9 completas** (2026-11-07). Siguiente: Etapa 10 (instalador NSIS).
+**Etapas 1 a 9 completas** (2026-11-07). Siguiente: 10a (binarios reproducibles y licencias).
 
 Notas para las próximas etapas:
 - La plantilla svelte-ts de Wails v2.17.1 trae Svelte 5: se usa `mount()` en `main.ts`, pero
