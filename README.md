@@ -22,6 +22,7 @@ Los binarios van dentro de `bin/` relativo al ejecutable. En desarrollo, eso es
 | Nginx    | 1.30.4          | `bin/nginx/nginx-1.30.4/nginx.exe` | https://nginx.org/en/download.html (zip de Windows) |
 | PHP      | 8.4.27 NTS (x64), 8.3.33 TS (x64) | `bin/php/php-8.4.27-1-nts-Win32-vs17-x64/php-cgi.exe` | https://windows.php.net/download/ (zip; se recomienda **NTS**) |
 | MySQL    | 8.4.3 LTS (x64) | `bin/mysql/mysql-8.4.3-winx64/bin/mysqld.exe` | https://dev.mysql.com/downloads/mysql/ (ZIP Archive) |
+| Redis    | 5.0.14.1 (x64)  | `bin/redis/redis-x64-5.0.14.1/redis-server.exe` | https://github.com/tporadowski/redis/releases (zip; es el port para Windows que usa Laragon) |
 
 Se descomprimen los zip tal cual.
 
@@ -58,6 +59,18 @@ Se descomprimen los zip tal cual.
 - MySQL se detiene siempre con `mysqladmin shutdown`. Solo si no termina en 60 s se mata el
   proceso (queda una ADVERTENCIA en `logs/kiltro.log`).
 - Log de MySQL: `logs/mysql/error.log`.
+
+### Redis
+
+- Redis no publica versiones oficiales para Windows: se usa el port de tporadowski (5.0.14.1),
+  el mismo de Laragon. Ya no se actualiza, pero es estable para desarrollo.
+- Escucha solo en `127.0.0.1:6379` (puerto configurable). Kiltro genera `etc/redis/redis.conf`.
+- Los datos se guardan en `data/redis/dump.rdb` cada tanto y siempre al detenerlo
+  (`redis-cli shutdown`). Solo si no termina en 30 s se mata el proceso.
+- Log: `logs/redis/redis.log` (también en la pestaña Logs).
+- Para Laravel: `REDIS_HOST=127.0.0.1`, `REDIS_PORT=6379`. Si usas `REDIS_CLIENT=phpredis`
+  necesitas la extensión `php_redis.dll` de tu versión de PHP; con `predis` (paquete de
+  Composer) no hace falta nada más.
 
 ### Gestor de base de datos (Adminer)
 
@@ -133,6 +146,7 @@ Pestaña **Configuración** (se guarda en `config.json`, junto al exe):
 |---|---|
 | Puerto HTTP / HTTPS de Nginx | 80 / 443 |
 | Puerto de MySQL | 3306 |
+| Puerto de Redis | 6379 |
 | PHP: primer puerto y cantidad de workers | 9000, 4 (puertos 9000-9003) |
 | Accesible desde la red local | apagado |
 | Carpeta de proyectos | `www\` junto al exe |

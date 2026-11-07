@@ -14,6 +14,7 @@ const (
 	DefaultHTTPPort    = 80
 	DefaultHTTPSPort   = 443
 	DefaultMySQLPort   = 3306
+	DefaultRedisPort   = 6379
 	DefaultPHPBasePort = 9000
 	DefaultPHPWorkers  = 4
 	MaxPHPWorkers      = 16
@@ -33,6 +34,7 @@ type Settings struct {
 	HTTPPort  int `json:"httpPort"`  // Nginx http (80)
 	HTTPSPort int `json:"httpsPort"` // Nginx https (443), solo si SSL
 	MySQLPort int `json:"mysqlPort"` // 3306
+	RedisPort int `json:"redisPort"` // 6379
 
 	// PHP: cantidad de workers php-cgi, en puertos consecutivos desde PHPBasePort.
 	PHPBasePort int `json:"phpBasePort"`
@@ -95,6 +97,9 @@ func (s *Settings) applyDefaults() {
 	if s.MySQLPort == 0 {
 		s.MySQLPort = DefaultMySQLPort
 	}
+	if s.RedisPort == 0 {
+		s.RedisPort = DefaultRedisPort
+	}
 	if s.PHPBasePort == 0 {
 		s.PHPBasePort = DefaultPHPBasePort
 	}
@@ -129,6 +134,7 @@ func (s Settings) Validate() error {
 		{"Nginx HTTP", s.HTTPPort},
 		{"Nginx HTTPS", s.HTTPSPort},
 		{"MySQL", s.MySQLPort},
+		{"Redis", s.RedisPort},
 	}
 	if s.PHPWorkers < 1 || s.PHPWorkers > MaxPHPWorkers {
 		return fmt.Errorf("la cantidad de workers de PHP debe estar entre 1 y %d", MaxPHPWorkers)

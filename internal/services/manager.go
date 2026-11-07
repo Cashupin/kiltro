@@ -77,12 +77,13 @@ func NewManager(onChange func()) (*ServiceManager, error) {
 		env:     env,
 		logFile: f,
 		nginx:   nginx,
-		// Orden de arranque: PHP y MySQL antes que Nginx (Nginx es la "puerta"
+		// Orden de arranque: PHP, MySQL y Redis antes que Nginx (Nginx es la "puerta"
 		// de entrada; cuando atiende, lo demás ya está listo).
 		// StopAll los detiene en orden inverso.
 		services: []Service{
 			NewPHP(env),
 			NewMySQL(env),
+			NewRedis(env),
 			nginx,
 		},
 	}
@@ -196,7 +197,7 @@ func (m *ServiceManager) stop(s Service) error {
 	return nil
 }
 
-// StartAll inicia todos los servicios en orden (PHP, MySQL, Nginx). Si uno
+// StartAll inicia todos los servicios en orden (PHP, MySQL, Redis, Nginx). Si uno
 // falla, sigue con los demás y devuelve todos los errores juntos.
 func (m *ServiceManager) StartAll() error {
 	m.opMu.Lock()
@@ -444,6 +445,9 @@ func (m *ServiceManager) SaveSettings(next config.Settings) ([]string, error) {
 	if next.MySQLPort != old.MySQLPort {
 		affected["mysql"] = true
 	}
+	if next.RedisPort != old.RedisPort {
+		affected["redis"] = true
+	}
 	if next.HTTPPort != old.HTTPPort || next.HTTPSPort != old.HTTPSPort ||
 		next.LAN != old.LAN || next.WWWDir() != old.WWWDir() {
 		affected["nginx"] = true
@@ -461,6 +465,7 @@ func (m *ServiceManager) SaveSettings(next config.Settings) ([]string, error) {
 	newPorts := map[string][]int{
 		"php":   next.PHPPorts(),
 		"mysql": {next.MySQLPort},
+		"redis": {next.RedisPort},
 		"nginx": nginxPorts(next),
 	}
 	for _, s := range running {
@@ -491,8 +496,8 @@ func (m *ServiceManager) SaveSettings(next config.Settings) ([]string, error) {
 	}); err != nil {
 		return nil, err
 	}
-	m.env.Log.Printf("[config] configuración guardada (http %d, https %d, mysql %d, php %d x%d, red local %v, www %s)",
-		next.HTTPPort, next.HTTPSPort, next.MySQLPort, next.PHPBasePort, next.PHPWorkers, next.LAN, next.WWWDir())
+	m.env.Log.Printf("[config] configuración guardada (http %d, https %d, mysql %d, redis %d, php %d x%d, red local %v, www %s)",
+		next.HTTPPort, next.HTTPSPort, next.MySQLPort, next.RedisPort, next.PHPBasePort, next.PHPWorkers, next.LAN, next.WWWDir())
 
 	var restarted []string
 	var errs []error

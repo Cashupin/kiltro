@@ -87,7 +87,7 @@ func (a *App) trayServices() []tray.Service {
 	if a.manager == nil {
 		return nil
 	}
-	labels := map[string]string{"php": "PHP", "mysql": "MySQL", "nginx": "Nginx"}
+	labels := map[string]string{"php": "PHP", "mysql": "MySQL", "redis": "Redis", "nginx": "Nginx"}
 	var out []tray.Service
 	for _, info := range a.manager.List() {
 		label := labels[info.Name]

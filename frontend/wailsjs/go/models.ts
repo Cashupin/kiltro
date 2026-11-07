@@ -6,6 +6,7 @@ export namespace config {
 	    httpPort: number;
 	    httpsPort: number;
 	    mysqlPort: number;
+	    redisPort: number;
 	    phpBasePort: number;
 	    phpWorkers: number;
 	    lan?: boolean;
@@ -22,6 +23,7 @@ export namespace config {
 	        this.httpPort = source["httpPort"];
 	        this.httpsPort = source["httpsPort"];
 	        this.mysqlPort = source["mysqlPort"];
+	        this.redisPort = source["redisPort"];
 	        this.phpBasePort = source["phpBasePort"];
 	        this.phpWorkers = source["phpWorkers"];
 	        this.lan = source["lan"];

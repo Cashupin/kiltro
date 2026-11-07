@@ -8,6 +8,7 @@
   let httpPort = 80
   let httpsPort = 443
   let mysqlPort = 3306
+  let redisPort = 6379
   let phpBasePort = 9000
   let phpWorkers = 4
   let lan = false
@@ -35,6 +36,7 @@
     httpPort = s.httpPort
     httpsPort = s.httpsPort
     mysqlPort = s.mysqlPort
+    redisPort = s.redisPort
     phpBasePort = s.phpBasePort
     phpWorkers = s.phpWorkers
     lan = !!s.lan
@@ -58,6 +60,7 @@
         httpPort: Number(httpPort),
         httpsPort: Number(httpsPort),
         mysqlPort: Number(mysqlPort),
+        redisPort: Number(redisPort),
         phpBasePort: Number(phpBasePort),
         phpWorkers: Number(phpWorkers),
         lan,
@@ -110,6 +113,9 @@
 
     <label for="mysql">MySQL</label>
     <input id="mysql" type="number" min="1" max="65535" bind:value={mysqlPort} />
+
+    <label for="redis">Redis</label>
+    <input id="redis" type="number" min="1" max="65535" bind:value={redisPort} />
 
     <label for="phpbase">PHP (primer puerto)</label>
     <div>

@@ -77,7 +77,7 @@ func Start(icon []byte, services []Service, cb Callbacks) {
 		mu.Unlock()
 
 		systray.AddSeparator()
-		startAll := systray.AddMenuItem("Iniciar todo", "Inicia PHP, MySQL y Nginx")
+		startAll := systray.AddMenuItem("Iniciar todo", "Inicia PHP, MySQL, Redis y Nginx")
 		stopAll := systray.AddMenuItem("Detener todo", "Detiene todos los servicios")
 		systray.AddSeparator()
 		quit := systray.AddMenuItem("Salir", "Detiene los servicios y cierra Kiltro")

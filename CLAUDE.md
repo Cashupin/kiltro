@@ -130,13 +130,13 @@ Trabajar **una etapa a la vez**. No adelantar trabajo de etapas siguientes.
 - [x] **Etapa 5:** Selector de versión de PHP.
 - [x] **Etapa 6:** System tray (minimizar a bandeja, start/stop desde el menú).
 - [x] **Etapa 7:** SSL con mkcert (`https://proyecto.test`).
-- [ ] **Etapa 8:** Redis, visor de logs, pantalla de configuración (puertos, carpeta www, etc.).
+- [x] **Etapa 8:** Redis, visor de logs, pantalla de configuración (puertos, carpeta www, etc.).
   - [x] 8a: Pantalla de configuración (puertos, workers de PHP, carpeta de proyectos) en
         `config.json`; Nginx solo en `127.0.0.1` con opción "Accesible desde la red local";
         botón para desinstalar la CA de mkcert.
   - [x] 8b: Visor de logs (pestaña Logs: últimas líneas, actualización automática, copiar,
         abrir carpeta, vaciar).
-  - [ ] 8c: Redis (5.0.14.1 de Laragon), `redis.conf` generado, apagado con `redis-cli shutdown`.
+  - [x] 8c: Redis (5.0.14.1 de Laragon), `redis.conf` generado, apagado con `redis-cli shutdown`.
 - [ ] **Etapa 9:** Pulido de la UI y del flujo de uso.
   - Ocultar las herramientas internas (`adminer.test`) de la lista de "Sitios": se usan desde
     su botón, no como un proyecto más (siguen en Nginx y en el hosts).
@@ -167,7 +167,7 @@ Trabajar **una etapa a la vez**. No adelantar trabajo de etapas siguientes.
 
 ## Estado actual
 
-**Etapas 1 a 7 completas, 8a y 8b** (2026-11-06). Siguiente: 8c (Redis).
+**Etapas 1 a 8 completas** (2026-11-06). Siguiente: Etapa 9 (pulido de la UI y del flujo de uso).
 
 Notas para las próximas etapas:
 - La plantilla svelte-ts de Wails v2.17.1 trae Svelte 5: se usa `mount()` en `main.ts`, pero
@@ -219,3 +219,8 @@ Notas para las próximas etapas:
   últimos 256 KB. Vaciar = truncar a 0; es seguro con el servicio corriendo porque Kiltro, Nginx
   y MySQL escriben en modo append (probado: sin bytes nulos). "Abrir carpeta" usa
   `windows.ShellExecute` para que el Explorador no quede dentro del Job.
+- Redis probado con 5.0.14.1 (port de tporadowski, copiado de Laragon) en
+  `bin/redis/redis-x64-5.0.14.1/`. `etc/redis/redis.conf` generado en cada arranque (solo
+  `127.0.0.1`, datos en `data/redis/dump.rdb`, log en `logs/redis/redis.log`). Apagado con
+  `redis-cli -p <puerto con que arrancó> shutdown` (guarda el RDB); matar solo tras 30 s.
+  Ninguno de los PHP trae `php_redis.dll`: para Laravel usar `predis` (o agregar la extensión).

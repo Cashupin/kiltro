@@ -31,6 +31,7 @@ func List() []Log {
 		{"nginx-error", "Nginx: errores (y errores de PHP)", config.Path("logs", "nginx", "error.log")},
 		{"nginx-access", "Nginx: accesos", config.Path("logs", "nginx", "access.log")},
 		{"mysql", "MySQL: errores", config.Path("logs", "mysql", "error.log")},
+		{"redis", "Redis", config.Path("logs", "redis", "redis.log")},
 	}
 }
 
