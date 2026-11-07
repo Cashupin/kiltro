@@ -17,7 +17,7 @@ import (
 )
 
 // Redis para Windows: Redis no publica versiones oficiales para Windows. Se usa
-// el port de tporadowski (el mismo que trae Laragon), 5.0.14.1. Ya no se
+// el port de tporadowski, 5.0.14.1 (el más usado en Windows). Ya no se
 // actualiza, pero es estable para desarrollo.
 
 const (

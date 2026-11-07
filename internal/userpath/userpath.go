@@ -34,7 +34,7 @@ func Contains(dir string) (bool, error) {
 }
 
 // Add pone dir al PRINCIPIO del PATH del usuario (para que gane sobre otros PHP
-// instalados, ej. el de Laragon o winget). Si ya estaba, no hace nada.
+// instalados, ej. el de winget o scoop). Si ya estaba, no hace nada.
 // Devuelve true si lo agregó.
 func Add(dir string) (bool, error) {
 	value, typ, err := read()

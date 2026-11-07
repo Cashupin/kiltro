@@ -82,7 +82,7 @@ UninstPage custom un.DataPage un.DataPageLeave
 
 Name "${INFO_PRODUCTNAME}"
 OutFile "..\..\bin\kiltro-setup-${INFO_PRODUCTVERSION}.exe"
-# Como Laragon: una carpeta en C:\ donde el usuario puede escribir.
+# Una carpeta en C:\ donde el usuario puede escribir (no Program Files).
 InstallDir "C:\kiltro"
 ShowInstDetails show
 ShowUninstDetails show
@@ -94,7 +94,7 @@ Var OptStartup      ; instalador: 1 = iniciar Kiltro con Windows (en la bandeja)
 Var DesktopCheckbox
 Var StartupCheckbox
 
-# "Iniciar con Windows": valor en HKCU\...\Run (del usuario, como hace Laragon).
+# "Iniciar con Windows": valor en HKCU\...\Run (del usuario, no de toda la máquina).
 # --tray = arranca escondido en la bandeja, sin abrir la ventana.
 !define RUN_KEY "Software\Microsoft\Windows\CurrentVersion\Run"
 
