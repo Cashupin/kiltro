@@ -46,6 +46,7 @@ arregla en cualquier parte. Kiltro es eso para tu PC.
 - **No corre como administrador.** Solo pide permiso (UAC) para actualizar el archivo
   `hosts` cuando cambian tus dominios.
 - **Portable.** Todo vive en una carpeta: configuración, bases de datos, logs y proyectos.
+- **En español e inglés**, según el idioma de tu Windows (se cambia en Configuración).
 - **Libre y abierto** (GPL-3.0).
 
 ## Qué incluye
@@ -92,7 +93,7 @@ Requisitos: Windows 10 u 11 de 64 bits. Ocupa unos 400 MB instalado.
    (Primero activa `php` y `composer` en **Configuración → php y composer en la terminal**).
 4. ¿Base de datos? MySQL está en `127.0.0.1:3306`, usuario `root` sin contraseña (lo que
    espera el `.env` de Laravel). El botón **Gestor BD** abre Adminer.
-5. ¿HTTPS? Pulsa **Activar HTTPS** y usa `https://blog.test`.
+5. ¿HTTPS? En la tarjeta HTTPS pulsa **Activar** y usa `https://blog.test`.
 
 <p align="center">
   <img src="docs/images/config.png" alt="Pantalla de configuración" width="405">

@@ -99,7 +99,8 @@ New-Item -ItemType Directory $stage, "$stage\www" | Out-Null
 Copy-Item (Join-Path $repo "build\bin\kiltro.exe") $stage
 Copy-Item $payload "$stage\bin" -Recurse
 Copy-Item LICENSE, THIRD-PARTY-NOTICES.md $stage
-Copy-Item (Join-Path $PSScriptRoot "portable-LEEME.txt") "$stage\LEEME.txt"
+Copy-Item (Join-Path $PSScriptRoot "portable-LEEME.txt") "$stage\LEEME.txt"     # español
+Copy-Item (Join-Path $PSScriptRoot "portable-README.txt") "$stage\README.txt"   # inglés
 
 $zip = Join-Path $out "kiltro-portable-$version.zip"
 # tar.exe de Windows: -a elige el formato por la extensión (.zip).

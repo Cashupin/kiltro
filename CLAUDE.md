@@ -189,7 +189,7 @@ Trabajar **una etapa a la vez**. No adelantar trabajo de etapas siguientes.
   - [x] 11a: Base (catálogos, `T`/`$t`, detección, selector en Configuración) + textos de las
         3 pantallas y de la bandeja. Test: mismas claves en ambos idiomas y claves usadas existen.
   - [x] 11b: Mensajes del backend (errores, estados, detalles que llegan a la UI).
-  - [ ] 11c: Instalador bilingüe, `LEEME.txt` en dos idiomas, capturas en inglés para README.en.md.
+  - [x] 11c: Instalador bilingüe, `LEEME.txt` en dos idiomas, capturas en inglés para README.en.md.
   - [ ] 11d: Publicar la 0.1.0 (release.ps1, repo público, tag y GitHub Release).
 - [ ] **Etapa 12:** Descargador de versiones de PHP (lista de windows.php.net, incluidas las del
       archivo histórico como 7.4; descarga, verifica SHA-256 y deja la carpeta en `bin/php/`).
@@ -206,7 +206,7 @@ Trabajar **una etapa a la vez**. No adelantar trabajo de etapas siguientes.
 
 ## Estado actual
 
-**Etapas 1 a 10 completas, 11a y 11b** (2026-11-07). Versión 0.1.0 armada (sin publicar). Siguiente: 11c (instalador bilingüe, LEEME en dos idiomas, capturas en inglés).
+**Etapas 1 a 10 completas, 11a, 11b y 11c** (2026-11-07). Siguiente: 11d (publicar la 0.1.0).
 
 Notas para las próximas etapas:
 - La plantilla svelte-ts de Wails v2.17.1 trae Svelte 5: se usa `mount()` en `main.ts`, pero

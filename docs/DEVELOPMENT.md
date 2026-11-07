@@ -299,6 +299,10 @@ borra los programas. `www\`, `data\` y `config.json` se conservan salvo que se m
 
 Instalación silenciosa: `kiltro-setup-<versión>.exe /S /D=C:\kiltro` · desinstalar: `C:\kiltro\uninstall.exe /S`.
 
+El instalador está en inglés y español: usa el idioma de Windows (si no es ninguno de los dos,
+inglés). Para probar el otro: `kiltro-setup-<versión>.exe /LANG=en` (o `/LANG=es`). Los textos
+están en `build/windows/installer/lang.nsh` (UTF-8 con BOM).
+
 ## Tests
 
 ```bat

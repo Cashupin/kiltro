@@ -1,6 +1,8 @@
 Kiltro - versión portable
 =========================
 
+(In English: README.txt)
+
 Entorno de desarrollo local liviano para Windows: Nginx, PHP, MySQL y Redis,
 con un sitio https://<carpeta>.test por cada carpeta dentro de www\.
 
@@ -16,6 +18,9 @@ La primera vez Windows puede pedir permiso de administrador para el archivo
 hosts (para que funcionen los dominios .test). Al activar HTTPS, Windows
 muestra un aviso para confiar en el certificado de Kiltro: hay que aceptar.
 (Con el instalador, kiltro-setup-<versión>.exe, ese aviso no aparece.)
+
+Kiltro usa el idioma de Windows (español o inglés). Se cambia en
+Configuración → Idioma.
 
 Para quitarlo
 -------------

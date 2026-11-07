@@ -43,12 +43,6 @@ ${StrStr}
 # La versión del exe tiene que tener 4 partes.
 VIProductVersion "${INFO_PRODUCTVERSION}.0"
 VIFileVersion    "${INFO_PRODUCTVERSION}.0"
-VIAddVersionKey "CompanyName"     "${INFO_COMPANYNAME}"
-VIAddVersionKey "FileDescription" "Instalador de ${INFO_PRODUCTNAME}"
-VIAddVersionKey "ProductVersion"  "${INFO_PRODUCTVERSION}"
-VIAddVersionKey "FileVersion"     "${INFO_PRODUCTVERSION}"
-VIAddVersionKey "LegalCopyright"  "${INFO_COPYRIGHT}"
-VIAddVersionKey "ProductName"     "${INFO_PRODUCTNAME}"
 
 ManifestDPIAware true
 
@@ -60,8 +54,8 @@ ManifestDPIAware true
 
 # --- Páginas del instalador ---
 !insertmacro MUI_PAGE_WELCOME
-!define MUI_LICENSEPAGE_TEXT_TOP "Kiltro es software libre (GPL-3.0). No hace falta aceptar nada para usarlo; esta licencia dice qué puedes hacer al modificarlo o redistribuirlo."
-!define MUI_LICENSEPAGE_BUTTON "Siguiente >"
+!define MUI_LICENSEPAGE_TEXT_TOP "$(txtLicenseTop)"
+!define MUI_LICENSEPAGE_BUTTON "$(txtNext)"
 !insertmacro MUI_PAGE_LICENSE "..\..\..\LICENSE"
 !define MUI_PAGE_CUSTOMFUNCTION_LEAVE CheckInstallDir
 !insertmacro MUI_PAGE_DIRECTORY
@@ -69,7 +63,7 @@ Page custom OptionsPage OptionsPageLeave
 !insertmacro MUI_PAGE_INSTFILES
 # "Abrir Kiltro" al terminar: SIN admin (ver RunKiltro).
 !define MUI_FINISHPAGE_RUN
-!define MUI_FINISHPAGE_RUN_TEXT "Abrir Kiltro"
+!define MUI_FINISHPAGE_RUN_TEXT "$(txtRunKiltro)"
 !define MUI_FINISHPAGE_RUN_FUNCTION RunKiltro
 !insertmacro MUI_PAGE_FINISH
 
@@ -78,7 +72,27 @@ Page custom OptionsPage OptionsPageLeave
 UninstPage custom un.DataPage un.DataPageLeave
 !insertmacro MUI_UNPAGE_INSTFILES
 
+# Idiomas: el instalador usa el de Windows si lo tiene; si no, el PRIMERO de
+# esta lista (inglés). Los textos propios están en lang.nsh.
+!insertmacro MUI_LANGUAGE "English"
 !insertmacro MUI_LANGUAGE "Spanish"
+!include "lang.nsh"
+
+# Datos del .exe (Propiedades → Detalles), en cada idioma.
+VIAddVersionKey /LANG=${LANG_ENGLISH} "FileDescription" "${INFO_PRODUCTNAME} installer"
+VIAddVersionKey /LANG=${LANG_SPANISH} "FileDescription" "Instalador de ${INFO_PRODUCTNAME}"
+!macro KiltroVersionKeys LANG
+    VIAddVersionKey /LANG=${LANG} "CompanyName"    "${INFO_COMPANYNAME}"
+    VIAddVersionKey /LANG=${LANG} "ProductVersion" "${INFO_PRODUCTVERSION}"
+    VIAddVersionKey /LANG=${LANG} "FileVersion"    "${INFO_PRODUCTVERSION}"
+    VIAddVersionKey /LANG=${LANG} "LegalCopyright" "${INFO_COPYRIGHT}"
+    VIAddVersionKey /LANG=${LANG} "ProductName"    "${INFO_PRODUCTNAME}"
+!macroend
+!insertmacro KiltroVersionKeys ${LANG_ENGLISH}
+!insertmacro KiltroVersionKeys ${LANG_SPANISH}
+
+# Texto del paso de WebView2 (macro de wails_tools.nsh).
+!define WAILS_INSTALL_WEBVIEW_DETAILPRINT "$(txtWebView2)"
 
 Name "${INFO_PRODUCTNAME}"
 OutFile "..\..\bin\kiltro-setup-${INFO_PRODUCTVERSION}.exe"
@@ -107,7 +121,7 @@ Var StartupCheckbox
         ClearErrors
         FileOpen $0 "$INSTDIR\${PRODUCT_EXECUTABLE}" a
         ${If} ${Errors}
-            MessageBox MB_RETRYCANCEL|MB_ICONEXCLAMATION "Kiltro está abierto.$\r$\n$\r$\nCiérralo con $\"Salir$\" en el ícono de la bandeja (junto al reloj) y pulsa Reintentar." /SD IDCANCEL IDRETRY retry_closed
+            MessageBox MB_RETRYCANCEL|MB_ICONEXCLAMATION "$(txtKiltroOpen)" /SD IDCANCEL IDRETRY retry_closed
             Abort
         ${EndIf}
         FileClose $0
@@ -116,6 +130,15 @@ Var StartupCheckbox
 
 Function .onInit
     !insertmacro wails.checkArchitecture
+
+    # /LANG=en o /LANG=es fuerza el idioma (sirve para probar). Sin eso, el de Windows.
+    ${GetParameters} $R0
+    ${GetOptions} $R0 "/LANG=" $R1
+    ${If} $R1 == "en"
+        StrCpy $LANGUAGE ${LANG_ENGLISH}
+    ${ElseIf} $R1 == "es"
+        StrCpy $LANGUAGE ${LANG_SPANISH}
+    ${EndIf}
     # Si ya está instalado, actualizar en la misma carpeta.
     SetRegView 64
     ReadRegStr $0 HKLM "${UNINST_KEY}" "InstallLocation"
@@ -143,7 +166,7 @@ Function CheckInstallDir
     ${StrStr} $1 "$INSTDIR\" "$PROGRAMFILES32\"
     ${If} $0 != ""
     ${OrIf} $1 != ""
-        MessageBox MB_OK|MB_ICONEXCLAMATION "Kiltro no puede ir en Archivos de programa: necesita escribir en su carpeta sin ser administrador.$\r$\n$\r$\nUsa una carpeta como C:\kiltro."
+        MessageBox MB_OK|MB_ICONEXCLAMATION "$(txtNoProgramFiles)"
         Abort
     ${EndIf}
 FunctionEnd
@@ -152,14 +175,14 @@ FunctionEnd
 # nueva. Al actualizar, muestran lo que ya estaba (para no quitar nada sin querer).
 # En la instalación silenciosa (/S) esta página no aparece: quedan como estaban.
 Function OptionsPage
-    !insertmacro MUI_HEADER_TEXT "Opciones" "Elige qué más quieres (puedes cambiarlo después)."
+    !insertmacro MUI_HEADER_TEXT "$(txtOptionsTitle)" "$(txtOptionsSubtitle)"
     nsDialogs::Create 1018
     Pop $0
-    ${NSD_CreateCheckbox} 0 0 100% 12u "Crear un acceso directo en el escritorio"
+    ${NSD_CreateCheckbox} 0 0 100% 12u "$(txtOptDesktop)"
     Pop $DesktopCheckbox
-    ${NSD_CreateCheckbox} 0 20u 100% 12u "Iniciar Kiltro con Windows (queda en la bandeja, junto al reloj)"
+    ${NSD_CreateCheckbox} 0 20u 100% 12u "$(txtOptStartup)"
     Pop $StartupCheckbox
-    ${NSD_CreateLabel} 12u 34u 95% 24u "Solo abre Kiltro: los servicios se inician con su botón. Se desactiva en el Administrador de tareas → Aplicaciones de arranque."
+    ${NSD_CreateLabel} 12u 34u 95% 24u "$(txtOptStartupHelp)"
     Pop $0
 
     ${If} $OptDesktop == 1
@@ -208,18 +231,18 @@ Section
     File "..\..\..\LICENSE"
     File "..\..\..\THIRD-PARTY-NOTICES.md"
 
-    DetailPrint "Copiando Nginx, PHP, MySQL, Redis, Composer, Adminer y mkcert..."
+    DetailPrint "$(txtCopying)"
     SetOutPath "$INSTDIR\bin"
     File /r "${KILTRO_PAYLOAD}\*.*"
     SetOutPath $INSTDIR
 
     CreateDirectory "$INSTDIR\www"
 
-    DetailPrint "Instalando el certificado de Kiltro para HTTPS..."
+    DetailPrint "$(txtInstallingCA)"
     ExecWait '"$INSTDIR\${PRODUCT_EXECUTABLE}" --install-ca' $0
     ${If} $0 != 0
         # No es grave: al activar HTTPS, Kiltro lo instala para el usuario (con el aviso de Windows).
-        DetailPrint "Aviso: no se pudo instalar el certificado (código $0). Detalle en logs\kiltro.log."
+        DetailPrint "$(txtCAWarning)"
     ${EndIf}
 
     CreateShortcut "$SMPROGRAMS\${INFO_PRODUCTNAME}.lnk" "$INSTDIR\${PRODUCT_EXECUTABLE}"
@@ -245,12 +268,12 @@ SectionEnd
 # --- Desinstalador ---
 
 Function un.DataPage
-    !insertmacro MUI_HEADER_TEXT "Tus proyectos y bases de datos" "Elige si también se borran."
+    !insertmacro MUI_HEADER_TEXT "$(txtDataTitle)" "$(txtDataSubtitle)"
     nsDialogs::Create 1018
     Pop $0
-    ${NSD_CreateLabel} 0 0 100% 36u "Por defecto se conservan la carpeta www (tus proyectos), data (las bases de datos de MySQL y Redis) y config.json en $INSTDIR. Si vuelves a instalar Kiltro en la misma carpeta, siguen ahí."
+    ${NSD_CreateLabel} 0 0 100% 36u "$(txtDataHelp)"
     Pop $0
-    ${NSD_CreateCheckbox} 0 44u 100% 12u "Borrar también mis proyectos (www) y bases de datos (data)"
+    ${NSD_CreateCheckbox} 0 44u 100% 12u "$(txtDataCheckbox)"
     Pop $DataCheckbox
     nsDialogs::Show
 FunctionEnd
@@ -258,7 +281,7 @@ FunctionEnd
 Function un.DataPageLeave
     ${NSD_GetState} $DataCheckbox $DeleteData
     ${If} $DeleteData == ${BST_CHECKED}
-        MessageBox MB_YESNO|MB_ICONEXCLAMATION "Se van a borrar www y data de $INSTDIR. Esto no se puede deshacer.$\r$\n$\r$\n¿Seguro?" IDYES +2
+        MessageBox MB_YESNO|MB_ICONEXCLAMATION "$(txtDataConfirm)" IDYES +2
         Abort
     ${EndIf}
 FunctionEnd
@@ -267,10 +290,10 @@ Section "uninstall"
     !insertmacro wails.setShellContext
     !insertmacro CheckKiltroClosed
 
-    DetailPrint "Quitando el certificado, el bloque del archivo hosts y el PATH de php/composer..."
+    DetailPrint "$(txtCleaning)"
     ExecWait '"$INSTDIR\${PRODUCT_EXECUTABLE}" --uninstall' $0
     ${If} $0 != 0
-        DetailPrint "Aviso: kiltro.exe --uninstall terminó con código $0 (detalle en logs\kiltro.log)."
+        DetailPrint "$(txtCleanWarning)"
     ${EndIf}
 
     # Los backups del hosts se guardan aparte antes de borrar etc\ (por si acaso).

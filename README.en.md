@@ -23,10 +23,11 @@
 </p>
 
 <p align="center">
-  <img src="docs/images/home.png" alt="Kiltro main window" width="820">
+  <img src="docs/images/home-en.png" alt="Kiltro main window" width="820">
 </p>
 
-> The app itself is in Spanish for now. An English interface is on the wish list.
+> Kiltro speaks English and Spanish: it follows your Windows language, and you can switch it
+> in **Settings → Language**.
 
 ---
 
@@ -47,6 +48,7 @@ get by anywhere. Kiltro is that for your PC.
 - **Doesn't run as administrator.** It only asks for permission (UAC) to update the `hosts`
   file when your domains change.
 - **Portable.** Everything lives in one folder: settings, databases, logs and projects.
+- **In English and Spanish**, following your Windows language (switch it in Settings).
 - **Free and open source** (GPL-3.0).
 
 ## What's included
@@ -81,8 +83,8 @@ Requirements: 64-bit Windows 10 or 11. About 400 MB once installed.
 
 ## Getting started
 
-1. Click **▶ Iniciar todo** (Start all).
-2. Click **＋ Nuevo sitio** (New site), type a name (e.g. `blog`) and you're done: `http://blog.test`.
+1. Click **▶ Start all**.
+2. Click **＋ New site**, type a name (e.g. `blog`) and you're done: `http://blog.test`.
 3. Put your project in that folder. For a fresh Laravel app, click **Terminal** on the site
    and run:
 
@@ -90,14 +92,14 @@ Requirements: 64-bit Windows 10 or 11. About 400 MB once installed.
    composer create-project laravel/laravel .
    ```
 
-   (First enable `php` and `composer` in **Configuración → php y composer en la terminal**.)
+   (First enable `php` and `composer` in **Settings → php and composer in the terminal**.)
 4. Need a database? MySQL is at `127.0.0.1:3306`, user `root` with no password (what Laravel's
-   default `.env` expects). The **Gestor BD** button opens Adminer.
-5. Want HTTPS? Click **Activar HTTPS** and use `https://blog.test`.
+   default `.env` expects). The **DB manager** button opens Adminer.
+5. Want HTTPS? Click **Enable** on the HTTPS card and use `https://blog.test`.
 
 <p align="center">
-  <img src="docs/images/config.png" alt="Settings screen" width="405">
-  <img src="docs/images/logs.png" alt="Log viewer" width="405">
+  <img src="docs/images/config-en.png" alt="Settings screen" width="405">
+  <img src="docs/images/logs-en.png" alt="Log viewer" width="405">
 </p>
 <p align="center">
   <img src="docs/images/adminer.png" alt="Adminer with the Kiltro theme" width="820">
@@ -118,7 +120,7 @@ backup before every change. Kiltro itself never runs as administrator.
 <summary><strong>Where are my projects and databases?</strong></summary>
 
 In Kiltro's folder (`C:\kiltro`): projects in `www\`, databases in `data\`, logs in `logs\`.
-The projects folder can be changed in **Configuración** (Settings). When you update or uninstall
+The projects folder can be changed in **Settings**. When you update or uninstall
 Kiltro, `www\` and `data\` are kept (unless you choose otherwise).
 </details>
 
@@ -133,8 +135,7 @@ It shows up in the PHP dropdown. A built-in downloader is coming soon.
 <details>
 <summary><strong>Can I open my sites from my phone?</strong></summary>
 
-Yes: in **Configuración** enable "Accesible desde la red local" (reachable from the local
-network) and use your PC's IP. It's off by default so nobody else on your network can see your
+Yes: in **Settings** enable "Reachable from the local network" and use your PC's IP. It's off by default so nobody else on your network can see your
 projects.
 </details>
 
@@ -142,7 +143,7 @@ projects.
 <summary><strong>Port 80 (or 443, or 3306) is already in use</strong></summary>
 
 Kiltro tells you which port is taken and, when it can, which program is using it (e.g. IIS,
-VMware or another development environment). Close it, or change the port in **Configuración**.
+VMware or another development environment). Close it, or change the port in **Settings**.
 </details>
 
 <details>
