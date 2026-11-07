@@ -6,6 +6,10 @@ export function ChooseFolder(arg1) {
   return window['go']['main']['App']['ChooseFolder'](arg1);
 }
 
+export function ClearLog(arg1) {
+  return window['go']['main']['App']['ClearLog'](arg1);
+}
+
 export function DisableSSL() {
   return window['go']['main']['App']['DisableSSL']();
 }
@@ -20,6 +24,10 @@ export function GetAppRoot() {
 
 export function GetHostsStatus() {
   return window['go']['main']['App']['GetHostsStatus']();
+}
+
+export function GetLogs() {
+  return window['go']['main']['App']['GetLogs']();
 }
 
 export function GetPHPVersions() {
@@ -44,6 +52,14 @@ export function GetSites() {
 
 export function OpenAdminer() {
   return window['go']['main']['App']['OpenAdminer']();
+}
+
+export function OpenLogsFolder() {
+  return window['go']['main']['App']['OpenLogsFolder']();
+}
+
+export function ReadLog(arg1) {
+  return window['go']['main']['App']['ReadLog'](arg1);
 }
 
 export function ReloadSites() {

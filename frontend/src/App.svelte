@@ -8,6 +8,7 @@
   } from '../wailsjs/go/main/App.js'
   import { EventsOn, BrowserOpenURL } from '../wailsjs/runtime/runtime.js'
   import Settings from './Settings.svelte'
+  import Logs from './Logs.svelte'
   import type { services, vhosts } from '../wailsjs/go/models'
 
   let root: string = '…'
@@ -195,8 +196,8 @@
 
   // Pestaña visible. Al volver a "Servicios" se refresca todo (la configuración
   // pudo cambiar puertos, la carpeta de proyectos o HTTPS).
-  let tab: 'services' | 'settings' = 'services'
-  async function showTab(t: 'services' | 'settings') {
+  let tab: 'services' | 'logs' | 'settings' = 'services'
+  async function showTab(t: 'services' | 'logs' | 'settings') {
     tab = t
     if (t === 'services') {
       await refresh()
@@ -227,11 +228,14 @@
 
   <nav>
     <button class:active={tab === 'services'} on:click={() => showTab('services')}>Servicios</button>
+    <button class:active={tab === 'logs'} on:click={() => showTab('logs')}>Logs</button>
     <button class:active={tab === 'settings'} on:click={() => showTab('settings')}>Configuración</button>
   </nav>
 
   {#if tab === 'settings'}
     <Settings />
+  {:else if tab === 'logs'}
+    <Logs />
   {:else}
 
   <table>

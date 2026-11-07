@@ -31,6 +31,45 @@ export namespace config {
 
 }
 
+export namespace logview {
+	
+	export class Log {
+	    id: string;
+	    label: string;
+	    path: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new Log(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.label = source["label"];
+	        this.path = source["path"];
+	    }
+	}
+	export class Result {
+	    lines: string[];
+	    size: number;
+	    exists: boolean;
+	    truncated: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new Result(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.lines = source["lines"];
+	        this.size = source["size"];
+	        this.exists = source["exists"];
+	        this.truncated = source["truncated"];
+	    }
+	}
+
+}
+
 export namespace main {
 	
 	export class SettingsView {

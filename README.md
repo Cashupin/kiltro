@@ -94,6 +94,16 @@ Sin `KILTRO_ROOT`, Kiltro usa la carpeta donde está `kiltro.exe`.
 
 El log de la app queda en `<raíz>/logs/kiltro.log`.
 
+## Logs
+
+Pestaña **Logs**: elige el archivo (Kiltro, Nginx errores, Nginx accesos, MySQL errores) y
+muestra las últimas 500 líneas, actualizándose cada 2 segundos. Las líneas de error se ven en
+rojo y las advertencias en amarillo.
+
+- Los **errores de PHP** aparecen en "Nginx: errores" (PHP se los manda a Nginx por FastCGI).
+- **Vaciar** deja el archivo en 0 bytes; se puede hacer con el servicio corriendo.
+- **Abrir carpeta** abre `logs\` en el Explorador.
+
 ## Sitios y archivo hosts
 
 Cada carpeta dentro de `www/` se sirve en `http://<carpeta>.test` (los proyectos Laravel

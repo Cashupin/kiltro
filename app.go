@@ -3,11 +3,15 @@ package main
 import (
 	"context"
 	"errors"
+	"os"
+
+	"golang.org/x/sys/windows"
 
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 
 	"kiltro/internal/config"
+	"kiltro/internal/logview"
 	"kiltro/internal/services"
 	"kiltro/internal/tray"
 	"kiltro/internal/vhosts"
@@ -264,6 +268,43 @@ func (a *App) UninstallCA() error {
 		return err
 	}
 	return a.manager.UninstallCA()
+}
+
+// --- Logs ---
+
+// GetLogs devuelve los logs que se pueden ver (para el desplegable).
+func (a *App) GetLogs() []logview.Log {
+	return logview.List()
+}
+
+// ReadLog devuelve las últimas 500 líneas del log indicado.
+func (a *App) ReadLog(id string) (logview.Result, error) {
+	return logview.Tail(id, 500)
+}
+
+// ClearLog vacía un log (la UI pide confirmación antes).
+func (a *App) ClearLog(id string) error {
+	if err := logview.Clear(id); err != nil {
+		return err
+	}
+	if a.manager != nil {
+		a.manager.LogPrintf("[logs] log %q vaciado desde la UI", id)
+	}
+	return nil
+}
+
+// OpenLogsFolder abre la carpeta logs\ en el Explorador de Windows.
+//
+// Se usa ShellExecute ("abrir esta carpeta") en vez de lanzar explorer.exe
+// como proceso hijo: así el Explorador no queda dentro del Job Object de
+// Kiltro (si lo estuviera, esa ventana se cerraría al salir de Kiltro).
+func (a *App) OpenLogsFolder() error {
+	dir := config.Path("logs")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return err
+	}
+	return windows.ShellExecute(0, windows.StringToUTF16Ptr("open"), windows.StringToUTF16Ptr(dir),
+		nil, nil, windows.SW_SHOWNORMAL)
 }
 
 // GetSSLStatus dice si HTTPS está activado y si mkcert está instalado.

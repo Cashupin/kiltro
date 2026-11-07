@@ -55,6 +55,7 @@ func NewMySQL(env *Env) *MySQL {
 }
 
 func (m *MySQL) Name() string { return "mysql" }
+
 // Ports: mientras corre, el puerto con que arrancó; detenido, el de config.json.
 func (m *MySQL) Ports() []int {
 	m.mu.Lock()
@@ -356,9 +357,10 @@ func (m *MySQL) mysqladminShutdown() error {
 
 	var attempts [][]string
 	if _, err := os.Stat(mysqlAdminCnf()); err == nil {
-		attempts = append(attempts, // -P va DESPUÉS de --defaults-file: pisa el puerto guardado en el .cnf
+		// -P va DESPUÉS de --defaults-file: pisa el puerto guardado en el .cnf
 		// (que es el de cuando se inicializó MySQL).
-		[]string{"--defaults-file=" + mysqlAdminCnf(), fmt.Sprintf("-P%d", m.runningPort()), "shutdown"})
+		attempts = append(attempts,
+			[]string{"--defaults-file=" + mysqlAdminCnf(), fmt.Sprintf("-P%d", m.runningPort()), "shutdown"})
 	}
 	attempts = append(attempts, []string{
 		"--no-defaults", "-u", "root", "-h", "127.0.0.1", fmt.Sprintf("-P%d", m.runningPort()), "shutdown",

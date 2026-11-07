@@ -134,7 +134,7 @@ Trabajar **una etapa a la vez**. No adelantar trabajo de etapas siguientes.
   - [x] 8a: Pantalla de configuración (puertos, workers de PHP, carpeta de proyectos) en
         `config.json`; Nginx solo en `127.0.0.1` con opción "Accesible desde la red local";
         botón para desinstalar la CA de mkcert.
-  - [ ] 8b: Visor de logs (pestaña Logs: últimas líneas, actualización automática, copiar,
+  - [x] 8b: Visor de logs (pestaña Logs: últimas líneas, actualización automática, copiar,
         abrir carpeta, vaciar).
   - [ ] 8c: Redis (5.0.14.1 de Laragon), `redis.conf` generado, apagado con `redis-cli shutdown`.
 - [ ] **Etapa 9:** Pulido de la UI y del flujo de uso.
@@ -167,7 +167,7 @@ Trabajar **una etapa a la vez**. No adelantar trabajo de etapas siguientes.
 
 ## Estado actual
 
-**Etapas 1 a 7 completas y 8a** (2026-11-06). Siguiente: 8b (visor de logs).
+**Etapas 1 a 7 completas, 8a y 8b** (2026-11-06). Siguiente: 8c (Redis).
 
 Notas para las próximas etapas:
 - La plantilla svelte-ts de Wails v2.17.1 trae Svelte 5: se usa `mount()` en `main.ts`, pero
@@ -215,3 +215,7 @@ Notas para las próximas etapas:
   afectados con la config vieja, guarda y los vuelve a iniciar: por eso MySQL se apaga en el
   puerto correcto (y `mysqladmin` recibe `-P`, que pisa el puerto guardado en kiltro-admin.cnf).
 - `procutil.CheckPortFree` solo prueba `127.0.0.1`: abrir `0.0.0.0` dispara el aviso del firewall.
+- Logs (`internal/logview`): lista FIJA de logs por id (la UI nunca manda rutas). Lee solo los
+  últimos 256 KB. Vaciar = truncar a 0; es seguro con el servicio corriendo porque Kiltro, Nginx
+  y MySQL escriben en modo append (probado: sin bytes nulos). "Abrir carpeta" usa
+  `windows.ShellExecute` para que el Explorador no quede dentro del Job.

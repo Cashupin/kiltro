@@ -90,6 +90,12 @@ func NewManager(onChange func()) (*ServiceManager, error) {
 	return m, nil
 }
 
+// LogPrintf escribe una línea en logs/kiltro.log (para acciones de la UI que
+// no son de un servicio, ej. vaciar un log).
+func (m *ServiceManager) LogPrintf(format string, args ...any) {
+	m.env.Log.Printf(format, args...)
+}
+
 // get busca un servicio por nombre.
 func (m *ServiceManager) get(name string) (Service, error) {
 	for _, s := range m.services {
