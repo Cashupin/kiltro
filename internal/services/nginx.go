@@ -19,8 +19,6 @@ import (
 )
 
 const (
-	nginxPort         = 80               // fijo por ahora; configurable en la etapa 8
-	nginxSSLPort      = 443              // HTTPS, solo si está activado (ver sslEnabled)
 	nginxStartTimeout = 5 * time.Second  // cuánto esperar a que empiece a escuchar
 	nginxStopTimeout  = 10 * time.Second // cuánto esperar al apagado limpio antes de forzar
 )
@@ -41,6 +39,7 @@ type Nginx struct {
 	lastErr string
 	cmd     *exec.Cmd     // proceso master de nginx mientras corre; nil si no
 	exited  chan struct{} // se cierra cuando el master termina
+	ports   []int         // puertos con los que arrancó (http y, si hay HTTPS, https)
 }
 
 // NewNginx crea el servicio (no lo arranca).
@@ -50,18 +49,36 @@ func NewNginx(env *Env) *Nginx {
 
 func (n *Nginx) Name() string { return "nginx" }
 
-// Ports incluye el 443 solo si HTTPS está activado (si no, no se toca).
+// Ports: mientras corre, los puertos con que arrancó; detenido, los de
+// config.json. El de HTTPS solo si está activado (si no, ese puerto no se toca).
 func (n *Nginx) Ports() []int {
-	if sslEnabled() {
-		return []int{nginxPort, nginxSSLPort}
+	n.mu.Lock()
+	defer n.mu.Unlock()
+	if n.status != StatusStopped && n.status != StatusError && len(n.ports) > 0 {
+		return append([]int(nil), n.ports...)
 	}
-	return []int{nginxPort}
+	return nginxPorts(config.Current())
+}
+
+func nginxPorts(cfg config.Settings) []int {
+	if cfg.SSL {
+		return []int{cfg.HTTPPort, cfg.HTTPSPort}
+	}
+	return []int{cfg.HTTPPort}
+}
+
+// listenAddr arma el valor de `listen`: "127.0.0.1:80" (solo esta PC) o "80"
+// (todas las interfaces, si está activado el acceso desde la red local).
+func listenAddr(cfg config.Settings, port int) string {
+	if cfg.LAN {
+		return fmt.Sprint(port)
+	}
+	return fmt.Sprintf("127.0.0.1:%d", port)
 }
 
 // sslEnabled dice si el usuario activó HTTPS (config.json).
 func sslEnabled() bool {
-	cfg, _ := config.Load()
-	return cfg.SSL
+	return config.Current().SSL
 }
 
 func (n *Nginx) Status() Status {
@@ -93,6 +110,10 @@ func (n *Nginx) fail(err error) error {
 // Start genera nginx.conf, lo valida con `nginx -t` y lanza nginx.
 // Vuelve cuando nginx ya está escuchando en el puerto (o con error).
 func (n *Nginx) Start() error {
+	cfg := config.Current()
+	n.mu.Lock()
+	n.ports = nginxPorts(cfg)
+	n.mu.Unlock()
 	n.setStatus(StatusStarting, "")
 
 	exe, err := nginxExe()
@@ -141,16 +162,16 @@ func (n *Nginx) Start() error {
 		default:
 		}
 
-		if _, ok := procutil.ListenerPID(nginxPort); ok {
+		if _, ok := procutil.ListenerPID(cfg.HTTPPort); ok {
 			n.setStatus(StatusRunning, "")
-			n.env.Log.Printf("[nginx] escuchando en el puerto %d (PID %d)", nginxPort, cmd.Process.Pid)
+			n.env.Log.Printf("[nginx] escuchando en %s (PID %d)", strings.Join(portStrings(cfg), ", "), cmd.Process.Pid)
 			return nil
 		}
 
 		if time.Now().After(deadline) {
 			procutil.KillTree(cmd.Process.Pid)
 			<-exited
-			return n.fail(fmt.Errorf("nginx no empezó a escuchar en el puerto %d tras %s", nginxPort, nginxStartTimeout))
+			return n.fail(fmt.Errorf("nginx no empezó a escuchar en el puerto %d tras %s", cfg.HTTPPort, nginxStartTimeout))
 		}
 		time.Sleep(100 * time.Millisecond)
 	}
@@ -279,15 +300,16 @@ func (n *Nginx) generateSites(exe string) ([]vhosts.Site, error) {
 		n.env.Log.Printf("[nginx] carpeta www\\%s ignorada: %s", s.Folder, s.Reason)
 	}
 
+	cfg := config.Current()
 	opts := vhosts.Options{
 		SitesDir:    config.Path("etc", "nginx", "sites"),
 		FastcgiConf: filepath.Join(filepath.Dir(exe), "conf", "fastcgi.conf"),
-		Port:        nginxPort,
+		Listen:      listenAddr(cfg, cfg.HTTPPort),
 	}
 
 	// HTTPS: asegurar un certificado por dominio (más "localhost", que usa el
 	// server por defecto en el 443). Solo se crean los que faltan.
-	if sslEnabled() {
+	if cfg.SSL {
 		domains := []string{"localhost"}
 		for _, s := range sites {
 			domains = append(domains, s.Domain)
@@ -299,7 +321,7 @@ func (n *Nginx) generateSites(exe string) ([]vhosts.Site, error) {
 		if err != nil {
 			return nil, err
 		}
-		opts.SSLPort = nginxSSLPort
+		opts.SSLListen = listenAddr(cfg, cfg.HTTPSPort)
 		opts.SSLCert = certs.Files
 	}
 
@@ -365,8 +387,8 @@ func runNginxCommand(job *procutil.Job, exe string, extra ...string) (string, er
 func phpUpstream() string {
 	var b strings.Builder
 	b.WriteString("    upstream php_workers {\n")
-	for i := 0; i < phpWorkers; i++ {
-		fmt.Fprintf(&b, "        server 127.0.0.1:%d;\n", phpBasePort+i)
+	for _, port := range config.Current().PHPPorts() {
+		fmt.Fprintf(&b, "        server 127.0.0.1:%d;\n", port)
 	}
 	b.WriteString("    }\n")
 	return b.String()
@@ -376,14 +398,15 @@ func phpUpstream() string {
 // está apagado). Usa el certificado de "localhost"; un dominio sin vhost que
 // entre por https verá una advertencia de certificado, lo cual es correcto.
 func defaultSSL() string {
-	if !sslEnabled() {
+	cfg := config.Current()
+	if !cfg.SSL {
 		return ""
 	}
 	cert, key := certs.Files("localhost")
 	return fmt.Sprintf(`
-        listen       %d ssl default_server;
+        listen       %s ssl default_server;
         ssl_certificate      "%s";
-        ssl_certificate_key  "%s";`, nginxSSLPort, filepath.ToSlash(cert), filepath.ToSlash(key))
+        ssl_certificate_key  "%s";`, listenAddr(cfg, cfg.HTTPSPort), filepath.ToSlash(cert), filepath.ToSlash(key))
 }
 
 // writeNginxConf genera etc/nginx/nginx.conf. Por ahora es una config fija:
@@ -441,7 +464,7 @@ http {
     # Server por defecto: atiende localhost y cualquier dominio que no tenga
     # vhost propio (muestra el phpinfo de prueba).
     server {
-        listen       %[3]d default_server;%[8]s
+        listen       %[3]s default_server;%[8]s
         server_name  localhost;
         root         "%[5]s";
         index        index.php index.html;
@@ -461,7 +484,7 @@ http {
     # Un archivo por proyecto de www/ (los genera internal/vhosts).
     include "%[7]s/*.conf";
 }
-`, nginxErrorLog, mimeTypes, nginxPort, phpUpstream(), filepath.ToSlash(defaultRoot), fastcgiConf,
+`, nginxErrorLog, mimeTypes, listenAddr(config.Current(), config.Current().HTTPPort), phpUpstream(), filepath.ToSlash(defaultRoot), fastcgiConf,
 		filepath.ToSlash(config.Path("etc", "nginx", "sites")), defaultSSL())
 
 	path := config.Path(filepath.FromSlash(nginxConfRel))
@@ -469,4 +492,13 @@ http {
 		return fmt.Errorf("no se pudo escribir %s: %w", path, err)
 	}
 	return nil
+}
+
+// portStrings: ["127.0.0.1:80", "127.0.0.1:443"] (para el log).
+func portStrings(cfg config.Settings) []string {
+	var out []string
+	for _, p := range nginxPorts(cfg) {
+		out = append(out, listenAddr(cfg, p))
+	}
+	return out
 }

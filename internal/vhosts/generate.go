@@ -15,12 +15,12 @@ import (
 type Options struct {
 	SitesDir    string // carpeta donde se escriben los .conf (etc/nginx/sites)
 	FastcgiConf string // ruta del fastcgi.conf que trae nginx
-	Port        int    // puerto HTTP (80)
+	Listen      string // valor de `listen` para http, ej. "127.0.0.1:80" (o "80" = todas las interfaces)
 
 	// HTTPS. Si SSLCert es nil, los vhosts son solo HTTP. Si no, cada vhost
-	// escucha también en SSLPort con el certificado que devuelve SSLCert.
-	SSLPort int
-	SSLCert func(domain string) (cert, key string)
+	// escucha también en SSLListen (ej. "127.0.0.1:443") con el certificado que devuelve SSLCert.
+	SSLListen string
+	SSLCert   func(domain string) (cert, key string)
 }
 
 // Datos que recibe vhost.conf.tmpl. Las rutas van con "/" (Nginx las acepta
@@ -31,10 +31,10 @@ type templateData struct {
 	Root        string
 	Laravel     bool
 	LocalOnly   bool
-	Port        int
+	Listen      string
 	FastcgiConf string
 	SSL         bool
-	SSLPort     int
+	SSLListen   string
 	SSLCert     string
 	SSLKey      string
 }
@@ -64,12 +64,12 @@ func Generate(sites []Site, opts Options) error {
 			Root:        filepath.ToSlash(s.Root),
 			Laravel:     s.Laravel,
 			LocalOnly:   s.LocalOnly,
-			Port:        opts.Port,
+			Listen:      opts.Listen,
 			FastcgiConf: filepath.ToSlash(opts.FastcgiConf),
 		}
 		if opts.SSLCert != nil {
 			cert, key := opts.SSLCert(s.Domain)
-			data.SSL, data.SSLPort = true, opts.SSLPort
+			data.SSL, data.SSLListen = true, opts.SSLListen
 			data.SSLCert, data.SSLKey = filepath.ToSlash(cert), filepath.ToSlash(key)
 		}
 		var buf bytes.Buffer

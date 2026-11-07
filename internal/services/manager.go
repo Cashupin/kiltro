@@ -282,7 +282,7 @@ func (m *ServiceManager) EnableSSL() error {
 	m.opMu.Lock()
 	defer m.opMu.Unlock()
 
-	if err := procutil.CheckPortFree(nginxSSLPort); err != nil {
+	if err := procutil.CheckPortFree(config.Current().HTTPSPort); err != nil {
 		m.env.Log.Printf("[ssl] no se activa: %v", err)
 		return err
 	}
@@ -406,4 +406,123 @@ func (m *ServiceManager) Close() {
 	m.env.Log.Printf("Kiltro cerrado")
 	m.env.Job.Close()
 	m.logFile.Close()
+}
+
+// SaveSettings valida y guarda la configuración editable (puertos, red local,
+// carpeta de proyectos) y reinicia los servicios afectados que estaban
+// corriendo. Devuelve los nombres de los servicios reiniciados.
+//
+// El orden importa:
+//  1. Validar y revisar que los puertos NUEVOS estén libres (si no, no se cambia nada).
+//  2. Detener los servicios afectados con la config VIEJA (ej. mysqladmin tiene
+//     que hablarle al puerto en el que MySQL está escuchando ahora).
+//  3. Guardar config.json.
+//  4. Volver a iniciarlos, ya con la config nueva.
+func (m *ServiceManager) SaveSettings(next config.Settings) ([]string, error) {
+	m.opMu.Lock()
+	defer m.opMu.Unlock()
+
+	old, _ := config.Load()
+	// Lo que no se edita en esta pantalla se conserva tal cual.
+	next.PHP, next.SSL = old.PHP, old.SSL
+	if err := next.Validate(); err != nil {
+		return nil, err
+	}
+
+	// ¿Qué servicios cambian?
+	affected := map[string]bool{}
+	if next.PHPBasePort != old.PHPBasePort || next.PHPWorkers != old.PHPWorkers {
+		affected["php"] = true
+		affected["nginx"] = true // el upstream de nginx lista los puertos de PHP
+	}
+	if next.MySQLPort != old.MySQLPort {
+		affected["mysql"] = true
+	}
+	if next.HTTPPort != old.HTTPPort || next.HTTPSPort != old.HTTPSPort ||
+		next.LAN != old.LAN || next.WWWDir() != old.WWWDir() {
+		affected["nginx"] = true
+	}
+
+	// Servicios afectados que están corriendo (en orden de arranque).
+	var running []Service
+	for _, s := range m.services {
+		if st := s.Status(); affected[s.Name()] && (st == StatusRunning || st == StatusStarting) {
+			running = append(running, s)
+		}
+	}
+
+	// Puertos nuevos que todavía no usa ese mismo servicio: tienen que estar libres.
+	newPorts := map[string][]int{
+		"php":   next.PHPPorts(),
+		"mysql": {next.MySQLPort},
+		"nginx": nginxPorts(next),
+	}
+	for _, s := range running {
+		current := map[int]bool{}
+		for _, p := range s.Ports() {
+			current[p] = true
+		}
+		for _, p := range newPorts[s.Name()] {
+			if current[p] {
+				continue
+			}
+			if err := procutil.CheckPortFree(p); err != nil {
+				return nil, fmt.Errorf("no se guardó la configuración: %w", err)
+			}
+		}
+	}
+
+	for i := len(running) - 1; i >= 0; i-- {
+		if err := m.stop(running[i]); err != nil {
+			return nil, err
+		}
+	}
+
+	if err := config.Update(func(s *config.Settings) {
+		php, ssl := s.PHP, s.SSL
+		*s = next
+		s.PHP, s.SSL = php, ssl
+	}); err != nil {
+		return nil, err
+	}
+	m.env.Log.Printf("[config] configuración guardada (http %d, https %d, mysql %d, php %d x%d, red local %v, www %s)",
+		next.HTTPPort, next.HTTPSPort, next.MySQLPort, next.PHPBasePort, next.PHPWorkers, next.LAN, next.WWWDir())
+
+	var restarted []string
+	var errs []error
+	for _, s := range running {
+		if err := m.start(s); err != nil {
+			errs = append(errs, fmt.Errorf("%s: %w", s.Name(), err))
+			continue
+		}
+		restarted = append(restarted, s.Name())
+	}
+	m.env.Notify()
+	return restarted, errors.Join(errs...)
+}
+
+// UninstallCA quita la CA de Kiltro de los certificados de confianza de
+// Windows (mkcert -uninstall; Windows pide confirmación). Si HTTPS estaba
+// activado, primero lo desactiva. Los archivos de la CA quedan en etc/ssl/ca:
+// si se vuelve a activar HTTPS, se reinstala la misma.
+func (m *ServiceManager) UninstallCA() error {
+	m.opMu.Lock()
+	defer m.opMu.Unlock()
+
+	if sslEnabled() {
+		if err := config.Update(func(s *config.Settings) { s.SSL = false }); err != nil {
+			return err
+		}
+		m.env.Log.Printf("[ssl] HTTPS desactivado (se va a desinstalar la CA)")
+		if err := m.restartNginxForSSL(); err != nil {
+			return err
+		}
+	}
+	m.env.Log.Printf("[ssl] desinstalando la CA de mkcert (Windows pide confirmación)...")
+	if err := certs.Uninstall(m.env.Job); err != nil {
+		m.env.Log.Printf("[ssl] %v", err)
+		return err
+	}
+	m.env.Log.Printf("[ssl] CA desinstalada de Windows")
+	return nil
 }

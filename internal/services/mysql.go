@@ -19,7 +19,6 @@ import (
 )
 
 const (
-	mysqlPort         = 3306             // fijo por ahora; configurable en la etapa 8
 	mysqlInitTimeout  = 2 * time.Minute  // inicialización de la primera vez
 	mysqlStartTimeout = 60 * time.Second // puede tardar si tiene que recuperarse de un corte
 	mysqlStopTimeout  = 60 * time.Second // tiempo para que InnoDB guarde todo en disco
@@ -44,6 +43,11 @@ type MySQL struct {
 	detail  string
 	cmd     *exec.Cmd
 	exited  chan struct{}
+
+	// port es el puerto con el que se ARRANCÓ mysqld. Para apagarlo se usa este
+	// (no el de config.json): si el usuario cambió el puerto mientras corría,
+	// mysqladmin tiene que hablarle al puerto viejo.
+	port int
 }
 
 func NewMySQL(env *Env) *MySQL {
@@ -51,7 +55,25 @@ func NewMySQL(env *Env) *MySQL {
 }
 
 func (m *MySQL) Name() string { return "mysql" }
-func (m *MySQL) Ports() []int { return []int{mysqlPort} }
+// Ports: mientras corre, el puerto con que arrancó; detenido, el de config.json.
+func (m *MySQL) Ports() []int {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.status != StatusStopped && m.status != StatusError && m.port != 0 {
+		return []int{m.port}
+	}
+	return []int{config.Current().MySQLPort}
+}
+
+// runningPort es el puerto del mysqld lanzado por Kiltro (para apagarlo).
+func (m *MySQL) runningPort() int {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.port != 0 {
+		return m.port
+	}
+	return config.Current().MySQLPort
+}
 
 func (m *MySQL) Status() Status {
 	m.mu.Lock()
@@ -102,7 +124,11 @@ func (m *MySQL) Start() error {
 			return m.fail(err)
 		}
 	}
-	if err := writeMyIni(filepath.Dir(bin)); err != nil {
+	port := config.Current().MySQLPort
+	m.mu.Lock()
+	m.port = port
+	m.mu.Unlock()
+	if err := writeMyIni(filepath.Dir(bin), port); err != nil {
 		return m.fail(err)
 	}
 
@@ -152,16 +178,16 @@ func (m *MySQL) Start() error {
 			return errors.New(m.LastError())
 		default:
 		}
-		if _, ok := procutil.ListenerPID(mysqlPort); ok {
+		if _, ok := procutil.ListenerPID(m.runningPort()); ok {
 			m.set(StatusRunning, "", "")
-			m.env.Log.Printf("[mysql] escuchando en 127.0.0.1:%d (PID %d)", mysqlPort, cmd.Process.Pid)
+			m.env.Log.Printf("[mysql] escuchando en 127.0.0.1:%d (PID %d)", m.runningPort(), cmd.Process.Pid)
 			return nil
 		}
 		if time.Now().After(deadline) {
 			// No llegó a estar listo: se intenta el apagado limpio igual.
 			_ = m.Stop()
 			return m.fail(fmt.Errorf("MySQL no empezó a escuchar en el puerto %d tras %s; revisa %s",
-				mysqlPort, mysqlStartTimeout, mysqlErrorLog()))
+				m.runningPort(), mysqlStartTimeout, mysqlErrorLog()))
 		}
 		time.Sleep(200 * time.Millisecond)
 	}
@@ -179,7 +205,7 @@ func (m *MySQL) initialize(bin string) error {
 		return err
 	}
 	cnf := fmt.Sprintf("# Generado por Kiltro. Usuario interno solo para apagar MySQL (permiso SHUTDOWN).\n"+
-		"[client]\nuser=%s\npassword=%s\nhost=127.0.0.1\nport=%d\n", mysqlAdminUser, pw, mysqlPort)
+		"[client]\nuser=%s\npassword=%s\nhost=127.0.0.1\nport=%d\n", mysqlAdminUser, pw, m.runningPort())
 	if err := os.WriteFile(mysqlAdminCnf(), []byte(cnf), 0o600); err != nil {
 		return fmt.Errorf("no se pudo escribir %s: %w", mysqlAdminCnf(), err)
 	}
@@ -300,7 +326,7 @@ func (m *MySQL) Stop() error {
 // stopOrphan apaga de forma limpia un servidor mysqld que quedó vivo después de
 // que su proceso monitor murió. Solo si no termina en mysqlStopTimeout, se mata.
 func (m *MySQL) stopOrphan() {
-	pid, ok := procutil.ListenerPID(mysqlPort)
+	pid, ok := procutil.ListenerPID(m.runningPort())
 	if !ok || !strings.EqualFold(procutil.ProcessName(pid), "mysqld.exe") {
 		return // no quedó nada escuchando: no hay huérfano
 	}
@@ -310,7 +336,7 @@ func (m *MySQL) stopOrphan() {
 	}
 	deadline := time.Now().Add(mysqlStopTimeout)
 	for time.Now().Before(deadline) {
-		if _, ok := procutil.ListenerPID(mysqlPort); !ok {
+		if _, ok := procutil.ListenerPID(m.runningPort()); !ok {
 			return
 		}
 		time.Sleep(500 * time.Millisecond)
@@ -330,10 +356,12 @@ func (m *MySQL) mysqladminShutdown() error {
 
 	var attempts [][]string
 	if _, err := os.Stat(mysqlAdminCnf()); err == nil {
-		attempts = append(attempts, []string{"--defaults-file=" + mysqlAdminCnf(), "shutdown"})
+		attempts = append(attempts, // -P va DESPUÉS de --defaults-file: pisa el puerto guardado en el .cnf
+		// (que es el de cuando se inicializó MySQL).
+		[]string{"--defaults-file=" + mysqlAdminCnf(), fmt.Sprintf("-P%d", m.runningPort()), "shutdown"})
 	}
 	attempts = append(attempts, []string{
-		"--no-defaults", "-u", "root", "-h", "127.0.0.1", fmt.Sprintf("-P%d", mysqlPort), "shutdown",
+		"--no-defaults", "-u", "root", "-h", "127.0.0.1", fmt.Sprintf("-P%d", m.runningPort()), "shutdown",
 	})
 
 	var errs []string
@@ -363,7 +391,7 @@ func mysqlBinDir() (string, error) {
 
 // writeMyIni genera etc/mysql/my.ini (se sobrescribe en cada arranque).
 // MySQL acepta "/" en las rutas en Windows.
-func writeMyIni(baseDir string) error {
+func writeMyIni(baseDir string, port int) error {
 	slash := filepath.ToSlash
 	ini := fmt.Sprintf(`# Generado por Kiltro. NO EDITAR: se sobrescribe en cada arranque.
 [mysqld]
@@ -381,7 +409,7 @@ performance_schema=OFF
 mysqlx=OFF
 innodb_buffer_pool_size=128M
 max_connections=50
-`, slash(baseDir), slash(mysqlDataDir()), slash(mysqlErrorLog()), mysqlPort)
+`, slash(baseDir), slash(mysqlDataDir()), slash(mysqlErrorLog()), port)
 
 	if err := os.WriteFile(mysqlIni(), []byte(ini), 0o644); err != nil {
 		return fmt.Errorf("no se pudo escribir %s: %w", mysqlIni(), err)

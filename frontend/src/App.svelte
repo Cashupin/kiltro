@@ -7,6 +7,7 @@
     GetSSLStatus, EnableSSL, DisableSSL,
   } from '../wailsjs/go/main/App.js'
   import { EventsOn, BrowserOpenURL } from '../wailsjs/runtime/runtime.js'
+  import Settings from './Settings.svelte'
   import type { services, vhosts } from '../wailsjs/go/models'
 
   let root: string = '…'
@@ -192,6 +193,19 @@
   // "hosts:changed" llega cuando termina una actualización del hosts en segundo plano.
   let offs: Array<() => void> = []
 
+  // Pestaña visible. Al volver a "Servicios" se refresca todo (la configuración
+  // pudo cambiar puertos, la carpeta de proyectos o HTTPS).
+  let tab: 'services' | 'settings' = 'services'
+  async function showTab(t: 'services' | 'settings') {
+    tab = t
+    if (t === 'services') {
+      await refresh()
+      await refreshSites()
+      await refreshHosts()
+      await refreshSsl()
+    }
+  }
+
   onMount(async () => {
     root = await GetAppRoot()
     offs.push(EventsOn('services:changed', refresh))
@@ -210,6 +224,15 @@
 
 <main>
   <p class="root">Kiltro — raíz: <code>{root}</code></p>
+
+  <nav>
+    <button class:active={tab === 'services'} on:click={() => showTab('services')}>Servicios</button>
+    <button class:active={tab === 'settings'} on:click={() => showTab('settings')}>Configuración</button>
+  </nav>
+
+  {#if tab === 'settings'}
+    <Settings />
+  {:else}
 
   <table>
     <tbody>
@@ -333,9 +356,28 @@
       <p class="error">{sslMsg}</p>
     {/if}
   {/if}
+  {/if}
 </main>
 
 <style>
+  nav {
+    display: flex;
+    gap: 0.3rem;
+    border-bottom: 1px solid #3a4a60;
+    margin: 1rem 0;
+  }
+  nav button {
+    background: transparent;
+    color: inherit;
+    border-radius: 3px 3px 0 0;
+    opacity: 0.7;
+  }
+  nav button.active {
+    background: #2c3e56;
+    opacity: 1;
+    font-weight: bold;
+  }
+
   main {
     padding: 2rem;
     text-align: left;

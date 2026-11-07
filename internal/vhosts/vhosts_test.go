@@ -92,7 +92,7 @@ func TestGenerate(t *testing.T) {
 		{Name: "blog", Domain: "blog.test", Folder: `C:\www\blog`, Root: `C:\www\blog`},
 		{Name: "adminer", Domain: "adminer.test", Root: `C:\etc\adminer`, Tool: true, LocalOnly: true},
 	}
-	err := Generate(sites, Options{SitesDir: sitesDir, FastcgiConf: `C:\nginx\conf\fastcgi.conf`, Port: 80})
+	err := Generate(sites, Options{SitesDir: sitesDir, FastcgiConf: `C:\nginx\conf\fastcgi.conf`, Listen: "127.0.0.1:80"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -104,7 +104,7 @@ func TestGenerate(t *testing.T) {
 	for _, want := range []string{
 		"server_name  api.test;",
 		`root         "C:/www/api/public";`, // rutas con "/"
-		"listen       80;",
+		"listen       127.0.0.1:80;",
 		`include       "C:/nginx/conf/fastcgi.conf";`,
 		"Laravel detectado",
 	} {
@@ -134,7 +134,7 @@ func TestGenerateConHTTPS(t *testing.T) {
 	sites := []Site{{Name: "blog", Domain: "blog.test", Root: `C:\www\blog`}}
 
 	// Sin SSLCert: solo HTTP.
-	if err := Generate(sites, Options{SitesDir: sitesDir, Port: 80}); err != nil {
+	if err := Generate(sites, Options{SitesDir: sitesDir, Listen: "127.0.0.1:80"}); err != nil {
 		t.Fatal(err)
 	}
 	conf, _ := os.ReadFile(filepath.Join(sitesDir, "blog.test.conf"))
@@ -142,15 +142,15 @@ func TestGenerateConHTTPS(t *testing.T) {
 		t.Errorf("sin HTTPS no debería haber nada de ssl:\n%s", conf)
 	}
 
-	err := Generate(sites, Options{SitesDir: sitesDir, Port: 80, SSLPort: 443,
+	err := Generate(sites, Options{SitesDir: sitesDir, Listen: "127.0.0.1:80", SSLListen: "127.0.0.1:443",
 		SSLCert: func(d string) (string, string) { return `C:\ssl\` + d + ".pem", `C:\ssl\` + d + "-key.pem" }})
 	if err != nil {
 		t.Fatal(err)
 	}
 	conf, _ = os.ReadFile(filepath.Join(sitesDir, "blog.test.conf"))
 	for _, want := range []string{
-		"listen       80;",
-		"listen       443 ssl;",
+		"listen       127.0.0.1:80;",
+		"listen       127.0.0.1:443 ssl;",
 		`ssl_certificate      "C:/ssl/blog.test.pem";`,
 		`ssl_certificate_key  "C:/ssl/blog.test-key.pem";`,
 	} {

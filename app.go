@@ -218,6 +218,54 @@ func (a *App) OpenAdminer() {
 	runtime.BrowserOpenURL(a.ctx, services.AdminerURL())
 }
 
+// SettingsView es lo que recibe la pantalla de configuración.
+type SettingsView struct {
+	Settings   config.Settings `json:"settings"`
+	DefaultWWW string          `json:"defaultWww"` // carpeta www por defecto (si Settings.WWW está vacío)
+	Error      string          `json:"error"`      // ej. config.json roto (se muestran los valores por defecto)
+}
+
+// GetSettings devuelve la configuración actual (con los valores por defecto completados).
+func (a *App) GetSettings() SettingsView {
+	s, err := config.Load()
+	v := SettingsView{Settings: s, DefaultWWW: config.Path("www")}
+	if err != nil {
+		v.Error = err.Error()
+	}
+	return v
+}
+
+// SaveSettings guarda la configuración y reinicia lo que haga falta.
+// Devuelve los servicios reiniciados (ej. ["nginx"]).
+func (a *App) SaveSettings(s config.Settings) ([]string, error) {
+	if err := a.ready(); err != nil {
+		return nil, err
+	}
+	oldWWW := config.Current().WWWDir()
+	restarted, err := a.manager.SaveSettings(s)
+	if config.Current().WWWDir() != oldWWW {
+		// Otra carpeta de proyectos = otros dominios en el hosts.
+		go a.syncHostsInBackground()
+	}
+	return restarted, err
+}
+
+// ChooseFolder abre el diálogo de Windows para elegir una carpeta. "" si se canceló.
+func (a *App) ChooseFolder(current string) (string, error) {
+	return runtime.OpenDirectoryDialog(a.ctx, runtime.OpenDialogOptions{
+		Title:            "Carpeta de proyectos",
+		DefaultDirectory: current,
+	})
+}
+
+// UninstallCA quita la CA de HTTPS de Windows (desactiva HTTPS si estaba activo).
+func (a *App) UninstallCA() error {
+	if err := a.ready(); err != nil {
+		return err
+	}
+	return a.manager.UninstallCA()
+}
+
 // GetSSLStatus dice si HTTPS está activado y si mkcert está instalado.
 func (a *App) GetSSLStatus() (services.SSLStatus, error) {
 	if err := a.ready(); err != nil {

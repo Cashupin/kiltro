@@ -133,3 +133,17 @@ func run(job *procutil.Job, exe string, dialogs bool, timeout time.Duration, arg
 		return "timeout", fmt.Errorf("mkcert no terminó tras %s", timeout)
 	}
 }
+
+// Uninstall quita la CA de Kiltro de los certificados de confianza de
+// Windows. Windows muestra un aviso pidiendo confirmar el borrado.
+func Uninstall(job *procutil.Job) error {
+	exe, err := Exe()
+	if err != nil {
+		return err
+	}
+	out, err := run(job, exe, true, 5*time.Minute, "-uninstall")
+	if err != nil {
+		return fmt.Errorf("mkcert -uninstall falló (¿rechazaste el aviso de Windows?): %s", out)
+	}
+	return nil
+}

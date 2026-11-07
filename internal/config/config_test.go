@@ -40,3 +40,42 @@ func TestUpdateGuardaYConservaCampos(t *testing.T) {
 		t.Error("un JSON roto debería dar error")
 	}
 }
+
+func TestDefaultsYValidate(t *testing.T) {
+	t.Setenv(EnvRoot, t.TempDir())
+	s, _ := Load()
+	if s.HTTPPort != 80 || s.HTTPSPort != 443 || s.MySQLPort != 3306 || s.PHPBasePort != 9000 || s.PHPWorkers != 4 {
+		t.Fatalf("defaults incorrectos: %+v", s)
+	}
+	if got := s.PHPPorts(); len(got) != 4 || got[3] != 9003 {
+		t.Fatalf("PHPPorts = %v", got)
+	}
+	if err := s.Validate(); err != nil {
+		t.Fatalf("los defaults deberían ser válidos: %v", err)
+	}
+
+	bad := s
+	bad.MySQLPort = 9002 // choca con un worker de PHP
+	if err := bad.Validate(); err == nil {
+		t.Error("debería detectar el puerto repetido")
+	}
+	bad = s
+	bad.HTTPPort = 70000
+	if err := bad.Validate(); err == nil {
+		t.Error("debería rechazar un puerto > 65535")
+	}
+	bad = s
+	bad.PHPWorkers = 0
+	if err := bad.Validate(); err == nil {
+		t.Error("debería rechazar 0 workers")
+	}
+	bad = s
+	bad.WWW = filepath.Join(t.TempDir(), "no-existe")
+	if err := bad.Validate(); err == nil {
+		t.Error("debería rechazar una carpeta inexistente")
+	}
+	bad.WWW = "relativa"
+	if err := bad.Validate(); err == nil {
+		t.Error("debería rechazar una ruta relativa")
+	}
+}

@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	"kiltro/internal/config"
 	"kiltro/internal/procutil"
 )
 
@@ -20,8 +21,6 @@ import (
 // varias en paralelo se lanzan varios "workers", cada uno en su puerto, y Nginx
 // reparte entre ellos con un bloque `upstream` (ver nginx.go).
 const (
-	phpWorkers      = 4    // cantidad de workers (configurable en la etapa 8)
-	phpBasePort     = 9000 // primer puerto; los workers usan 9000, 9001, ...
 	phpStartTimeout = 10 * time.Second
 
 	// Supervisión: si un worker se cae, se relanza tras phpRestartDelay.
@@ -67,12 +66,19 @@ func NewPHP(env *Env) *PHP {
 
 func (p *PHP) Name() string { return "php" }
 
+// Ports: mientras corre, los puertos de los workers lanzados; detenido, los de
+// config.json (cantidad y puerto inicial se configuran en la pantalla de configuración).
 func (p *PHP) Ports() []int {
-	ports := make([]int, phpWorkers)
-	for i := range ports {
-		ports[i] = phpBasePort + i
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if p.status != StatusStopped && p.status != StatusError && len(p.workers) > 0 {
+		ports := make([]int, len(p.workers))
+		for i, w := range p.workers {
+			ports[i] = w.port
+		}
+		return ports
 	}
-	return ports
+	return config.Current().PHPPorts()
 }
 
 func (p *PHP) Status() Status {
@@ -140,7 +146,7 @@ func (p *PHP) Start() error {
 	p.exe, p.ini = exe, ini
 	p.stopping = false
 	p.workers = nil
-	for _, port := range p.Ports() {
+	for _, port := range config.Current().PHPPorts() {
 		p.workers = append(p.workers, &phpWorker{port: port})
 	}
 	workers := p.workers
@@ -164,8 +170,9 @@ func (p *PHP) Start() error {
 		}
 		if p.allListening() {
 			p.setStatus(StatusRunning, "")
+			ports := p.Ports()
 			p.env.Log.Printf("[php] %d workers escuchando en %d-%d (%s)",
-				phpWorkers, phpBasePort, phpBasePort+phpWorkers-1, exe)
+				len(ports), ports[0], ports[len(ports)-1], exe)
 			return nil
 		}
 		if time.Now().After(deadline) {

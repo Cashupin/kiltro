@@ -42,21 +42,24 @@ func (e *PortInUseError) Error() string {
 // Hace dos chequeos:
 //  1. Busca en la tabla TCP de Windows si algún proceso está escuchando en ese
 //     puerto (así podemos decir QUIÉN lo usa).
-//  2. Intenta abrir el puerto nosotros mismos (en 0.0.0.0 y 127.0.0.1) y lo
-//     cierra al toque. Esto detecta casos que la tabla no muestra, como puertos
-//     reservados por Hyper-V.
+//  2. Intenta abrir el puerto nosotros mismos en 127.0.0.1 y lo cierra al
+//     toque. Esto detecta casos que la tabla no muestra, como puertos
+//     reservados por Hyper-V (esas reservas valen para todas las direcciones).
+//
+// Solo se prueba 127.0.0.1 y NO 0.0.0.0 a propósito: abrir un puerto en
+// 0.0.0.0, aunque sea un instante, hace que el Firewall de Windows pregunte si
+// kiltro.exe puede recibir conexiones de la red. Lo que esté escuchando en
+// 0.0.0.0 igual aparece en el chequeo 1.
 func CheckPortFree(port int) error {
 	if pid, ok := findListenerPID(port); ok {
 		return &PortInUseError{Port: port, PID: pid, ProcessName: processName(pid)}
 	}
 
-	for _, addr := range []string{"0.0.0.0", "127.0.0.1"} {
-		ln, err := net.Listen("tcp4", fmt.Sprintf("%s:%d", addr, port))
-		if err != nil {
-			return &PortInUseError{Port: port, Cause: err}
-		}
-		ln.Close()
+	ln, err := net.Listen("tcp4", fmt.Sprintf("127.0.0.1:%d", port))
+	if err != nil {
+		return &PortInUseError{Port: port, Cause: err}
 	}
+	ln.Close()
 	return nil
 }
 

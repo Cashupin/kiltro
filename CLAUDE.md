@@ -131,6 +131,12 @@ Trabajar **una etapa a la vez**. No adelantar trabajo de etapas siguientes.
 - [x] **Etapa 6:** System tray (minimizar a bandeja, start/stop desde el menú).
 - [x] **Etapa 7:** SSL con mkcert (`https://proyecto.test`).
 - [ ] **Etapa 8:** Redis, visor de logs, pantalla de configuración (puertos, carpeta www, etc.).
+  - [x] 8a: Pantalla de configuración (puertos, workers de PHP, carpeta de proyectos) en
+        `config.json`; Nginx solo en `127.0.0.1` con opción "Accesible desde la red local";
+        botón para desinstalar la CA de mkcert.
+  - [ ] 8b: Visor de logs (pestaña Logs: últimas líneas, actualización automática, copiar,
+        abrir carpeta, vaciar).
+  - [ ] 8c: Redis (5.0.14.1 de Laragon), `redis.conf` generado, apagado con `redis-cli shutdown`.
 - [ ] **Etapa 9:** Pulido de la UI y del flujo de uso.
   - Ocultar las herramientas internas (`adminer.test`) de la lista de "Sitios": se usan desde
     su botón, no como un proyecto más (siguen en Nginx y en el hosts).
@@ -138,6 +144,16 @@ Trabajar **una etapa a la vez**. No adelantar trabajo de etapas siguientes.
     (en ese orden) y recién ahí abrir Adminer.
   - Mejorar el aspecto general de la ventana de Kiltro.
   - Ícono propio de Kiltro (exe y bandeja; hoy es la "W" de la plantilla de Wails).
+- [ ] **Etapa 10:** Instalador (NSIS, el que soporta `wails build -nsis`).
+  - Corre una vez como admin para:
+    - instalar la CA de mkcert en el almacén de la **máquina** (así no aparece el aviso de
+      seguridad de Windows al activar HTTPS);
+    - (si hace falta) regla de firewall para Nginx.
+  - Instalar en una carpeta escribible sin admin (ej. `C:\kiltro`, como Laragon), NO en
+    `Program Files`: Kiltro escribe `etc/`, `data/` y `logs/` junto al exe. La versión portable
+    (zip) tiene que seguir funcionando igual. El desinstalador quita la CA y el bloque del hosts.
+  - Decidido: el archivo hosts se sigue escribiendo con UAC cada vez que cambian los dominios
+    (no dar permisos de escritura permanentes sobre el hosts ni correr Kiltro como admin).
 
 ## Forma de trabajar
 
@@ -151,7 +167,7 @@ Trabajar **una etapa a la vez**. No adelantar trabajo de etapas siguientes.
 
 ## Estado actual
 
-**Etapas 1 a 7 completas** (2026-11-06). Siguiente: Etapa 8 (Redis, visor de logs, pantalla de configuración).
+**Etapas 1 a 7 completas y 8a** (2026-11-06). Siguiente: 8b (visor de logs).
 
 Notas para las próximas etapas:
 - La plantilla svelte-ts de Wails v2.17.1 trae Svelte 5: se usa `mount()` en `main.ts`, pero
@@ -193,4 +209,9 @@ Notas para las próximas etapas:
   `Nginx.Ports()`. Activar/desactivar reinicia Nginx (no `-s reload`: cambia un puerto).
   `mkcert -install` usa `procutil.StartAllowDialogs` (sin HideWindow) para que se vea el aviso de
   Windows. curl de Windows necesita `--ssl-no-revoke` con estos certificados; los navegadores no.
-  Pendiente para la Etapa 8: botón para desinstalar la CA (`mkcert -uninstall`).
+- Configuración (`internal/config/config.go`): `Load()` completa los valores por defecto;
+  los servicios usan `config.Current()` (nunca falla). Mientras un servicio corre, `Ports()`
+  devuelve los puertos con los que ARRANCÓ (no los de config.json). `SaveSettings` detiene los
+  afectados con la config vieja, guarda y los vuelve a iniciar: por eso MySQL se apaga en el
+  puerto correcto (y `mysqladmin` recibe `-P`, que pisa el puerto guardado en kiltro-admin.cnf).
+- `procutil.CheckPortFree` solo prueba `127.0.0.1`: abrir `0.0.0.0` dispara el aviso del firewall.

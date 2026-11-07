@@ -128,7 +128,7 @@ func phpSingleQuoted(s string) string {
 // herramientas (Adminer, si está instalado). Lo usan Nginx (vhosts), la UI y
 // el archivo hosts, para que los tres vean siempre la misma lista.
 func allSites() ([]vhosts.Site, []vhosts.Skipped, error) {
-	sites, skipped, err := vhosts.Scan(config.Path("www"))
+	sites, skipped, err := vhosts.Scan(config.Current().WWWDir())
 	if err != nil {
 		return nil, nil, err
 	}

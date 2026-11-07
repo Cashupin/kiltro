@@ -2,9 +2,9 @@
 # Carpeta: {{.Folder}}{{if .Laravel}}
 # Laravel detectado: se sirve desde /public{{end}}
 server {
-    listen       {{.Port}};{{if .SSL}}
+    listen       {{.Listen}};{{if .SSL}}
     # HTTPS con el certificado de mkcert para este dominio.
-    listen       {{.SSLPort}} ssl;
+    listen       {{.SSLListen}} ssl;
     ssl_certificate      "{{.SSLCert}}";
     ssl_certificate_key  "{{.SSLKey}}";{{end}}
     server_name  {{.Domain}};

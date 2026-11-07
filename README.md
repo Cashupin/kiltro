@@ -115,6 +115,27 @@ Para que `*.test` resuelva, Kiltro escribe un bloque en
 - Antes de cada cambio se guarda una copia en `etc/hosts-backup/` (las últimas 10).
 - Algunos antivirus avisan cuando un programa modifica el hosts; hay que permitirlo.
 
+## Configuración
+
+Pestaña **Configuración** (se guarda en `config.json`, junto al exe):
+
+| Opción | Por defecto |
+|---|---|
+| Puerto HTTP / HTTPS de Nginx | 80 / 443 |
+| Puerto de MySQL | 3306 |
+| PHP: primer puerto y cantidad de workers | 9000, 4 (puertos 9000-9003) |
+| Accesible desde la red local | apagado |
+| Carpeta de proyectos | `www\` junto al exe |
+
+- Al guardar se validan los puertos (que no se repitan y que estén libres) y se reinician
+  solos los servicios afectados que estaban corriendo.
+- **Red local apagada** (recomendado): Nginx escucha solo en `127.0.0.1`; nadie más de tu red
+  ve tus proyectos y Windows no pregunta por el firewall. Encendida: escucha en todas las
+  interfaces (útil para probar desde el celular con la IP de la PC). Adminer siempre es solo local.
+- Si cambias el puerto de MySQL, actualiza `DB_PORT` en el `.env` de tus proyectos.
+- Si cambias la carpeta de proyectos, cambian los dominios: Kiltro actualiza el archivo hosts (UAC).
+- También ahí: **Desinstalar certificado de Kiltro** (quita la CA de HTTPS de Windows).
+
 ## HTTPS (mkcert)
 
 | Herramienta | Versión probada | Archivo | Cómo obtenerlo |
@@ -130,9 +151,8 @@ Para que `*.test` resuelva, Kiltro escribe un bloque en
 - La autoridad certificadora (CA) queda en `etc/ssl/ca/` y los certificados en
   `etc/ssl/certs/`. **No compartas `rootCA-key.pem`**: con ese archivo se pueden crear
   certificados que tu PC acepta para cualquier sitio.
-- Para quitar la CA de Windows: `certmgr.msc` → Entidades de certificación raíz de confianza →
-  Certificados → borrar el que empieza con "mkcert". (Desde Kiltro: en la pantalla de
-  configuración, más adelante.)
+- Para quitar la CA de Windows: botón en **Configuración**, o a mano en `certmgr.msc` → Entidades de certificación raíz de confianza →
+  Certificados → borrar el que empieza con "mkcert".
 - Firefox usa los certificados de Windows por defecto (`security.enterprise_roots.enabled`).
 - Para Laravel, recuerda poner `APP_URL=https://proyecto.test` en el `.env` si usas HTTPS.
 
