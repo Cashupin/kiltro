@@ -1,8 +1,11 @@
 <script lang="ts">
   // Pantalla de configuración. Sintaxis clásica de Svelte (sin runes), ver CLAUDE.md.
   import { onMount } from 'svelte'
-  import { GetSettings, SaveSettings, ChooseFolder, UninstallCA, GetAppRoot } from '../wailsjs/go/main/App.js'
-  import { config } from '../wailsjs/go/models'
+  import {
+    GetSettings, SaveSettings, ChooseFolder, UninstallCA, GetAppRoot,
+    GetShimsStatus, AddShimsToPath, RemoveShimsFromPath,
+  } from '../wailsjs/go/main/App.js'
+  import { config, services } from '../wailsjs/go/models'
 
   // Valores del formulario
   let httpPort = 80
@@ -95,10 +98,47 @@
     }
   }
 
+  // php y composer en la terminal (bin\shims en el PATH del usuario)
+  let shims: services.ShimsStatus | null = null
+  let shimsBusy = false
+  let shimsMsg = ''
+  let shimsMsgIsError = false
+
+  async function loadShims() {
+    try {
+      shims = await GetShimsStatus()
+    } catch (e) {
+      shimsMsgIsError = true
+      shimsMsg = String(e)
+    }
+  }
+
+  async function toggleShims(add: boolean) {
+    shimsBusy = true
+    shimsMsg = ''
+    try {
+      if (add) {
+        await AddShimsToPath()
+        shimsMsg = 'Listo. Las terminales que ya estaban abiertas no lo ven: ciérralas y abre una nueva.'
+      } else {
+        await RemoveShimsFromPath()
+        shimsMsg = 'Quitado del PATH. Las terminales que ya estaban abiertas lo siguen viendo hasta cerrarlas.'
+      }
+      shimsMsgIsError = false
+    } catch (e) {
+      shimsMsgIsError = true
+      shimsMsg = String(e)
+    } finally {
+      shimsBusy = false
+      await loadShims()
+    }
+  }
+
   let root = '…' // carpeta de la app (sección "Acerca de")
   onMount(async () => {
     root = await GetAppRoot()
     await load()
+    await loadShims()
   })
 </script>
 
@@ -173,6 +213,40 @@
       {saving ? 'Guardando…' : 'Guardar cambios'}
     </button>
     {#if msg}<span class={msgIsError ? 'error' : 'ok'}>{msg}</span>{/if}
+  </div>
+
+  <div class="card">
+    <div class="card-title">
+      <span class="dot" class:ok={shims?.inPath}></span>
+      php y composer en la terminal
+    </div>
+    <div class="body">
+      <p class="muted small first">
+        Agrega <code>{shims?.dir ?? 'bin\\shims'}</code> al PATH de tu usuario (no pide admin), para usar
+        <code>php</code> y <code>composer</code> en cualquier terminal con la versión de PHP elegida en Kiltro.
+        Al cambiar la versión, cambian solos.
+      </p>
+      {#if shims}
+        <p class="small first">
+          {#if shims.php}PHP: <code>{shims.php}</code>{:else}<span class="warn">No hay PHP en bin\php.</span>{/if}
+          {#if !shims.composer}
+            · <span class="warn">Falta <code>bin\composer\composer.phar</code> (solo funcionará <code>php</code>).</span>
+          {/if}
+        </p>
+        <div class="row">
+          {#if shims.inPath}
+            <span class="ok">✓ Está en el PATH</span>
+            <button on:click={() => toggleShims(false)} disabled={shimsBusy}>Quitar del PATH</button>
+          {:else}
+            <button class="outline" on:click={() => toggleShims(true)} disabled={shimsBusy || !shims.php}>
+              Agregar al PATH
+            </button>
+          {/if}
+        </div>
+        {#if shims.error}<p class="error small">{shims.error}</p>{/if}
+      {/if}
+      {#if shimsMsg}<p class="small {shimsMsgIsError ? 'error' : 'warn'}">{shimsMsg}</p>{/if}
+    </div>
   </div>
 
   <div class="card">

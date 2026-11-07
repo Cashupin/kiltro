@@ -137,7 +137,7 @@ Trabajar **una etapa a la vez**. No adelantar trabajo de etapas siguientes.
   - [x] 8b: Visor de logs (pestaña Logs: últimas líneas, actualización automática, copiar,
         abrir carpeta, vaciar).
   - [x] 8c: Redis (5.0.14.1 de Laragon), `redis.conf` generado, apagado con `redis-cli shutdown`.
-- [ ] **Etapa 9:** Pulido de la UI y del flujo de uso.
+- [x] **Etapa 9:** Pulido de la UI y del flujo de uso.
   - [x] 9a: Flujo de uso.
     - Ocultar las herramientas internas (`adminer.test`) de la lista de "Sitios": se usan desde
       su botón, no como un proyecto más (siguen en Nginx y en el hosts).
@@ -151,7 +151,7 @@ Trabajar **una etapa a la vez**. No adelantar trabajo de etapas siguientes.
     - Hosts y HTTPS agrupados en un bloque; paleta con acento azul (como el tema de Adminer).
   - [x] 9c: Ícono propio de Kiltro (SVG → `.ico` con varios tamaños; exe y bandeja; hoy es la
         "W" de la plantilla de Wails).
-  - [ ] 9d: `php` y `composer` en la terminal (opcional, con un botón en Configuración).
+  - [x] 9d: `php` y `composer` en la terminal (opcional, con un botón en Configuración).
     - Composer 2.10.2 copiado de Laragon a `bin/composer/composer.phar`.
     - Kiltro genera `bin/shims/php.bat` y `composer.bat` que apuntan a la versión de PHP
       elegida; la carpeta `shims` se agrega UNA vez al PATH del usuario (HKCU, sin admin).
@@ -180,7 +180,7 @@ Trabajar **una etapa a la vez**. No adelantar trabajo de etapas siguientes.
 
 ## Estado actual
 
-**Etapas 1 a 8 completas, 9a, 9b y 9c** (2026-11-06). Siguiente: 9d (`php` y `composer` en la terminal).
+**Etapas 1 a 9 completas** (2026-11-07). Siguiente: Etapa 10 (instalador NSIS).
 
 Notas para las próximas etapas:
 - La plantilla svelte-ts de Wails v2.17.1 trae Svelte 5: se usa `mount()` en `main.ts`, pero
@@ -250,3 +250,13 @@ Notas para las próximas etapas:
   armado con `go run ./tools/icopack`) y `frontend/src/assets/images/kiltro.svg` (logo de la UI).
   NO borrar `icon.ico`: `main.go` lo embebe y sin él no compila (wails no alcanza a regenerarlo).
   Pasos para cambiarlo en `build/README.md`.
+- php/composer en la terminal (9d): `internal/services/shims.go` genera `bin/shims/php.bat`,
+  `composer.bat` y `conf.d/kiltro.ini` (rutas absolutas; se reescriben al iniciar y al cambiar de
+  versión). El PHP de consola sin `extension_dir` busca en `C:\php\ext`: los .bat definen
+  `PHP_INI_SCAN_DIR` (variable de entorno, la heredan los PHP que lanza Composer; un `-d` no).
+  `internal/userpath`: PATH del usuario en `HKCU\Environment` (respeta REG_EXPAND_SZ, va al
+  principio, `WM_SETTINGCHANGE` al terminar) y también actualiza el PATH del propio Kiltro.
+  Composer 2.10.2 en `bin/composer/composer.phar`.
+- Desarrollo: `devmode_dev.go` / `devmode_prod.go` (etiqueta de build `dev`, la que usa
+  `wails dev`). `App.GetDevWarning` muestra una franja en la UI si `wails dev` corre sin
+  `KILTRO_ROOT` (la raíz sería `build\bin`). En `wails build` no existe.

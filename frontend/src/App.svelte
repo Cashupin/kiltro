@@ -5,7 +5,7 @@
     GetServices, StartService, StopService, StartAll, StopAll, GetSites, ReloadSites,
     GetHostsStatus, SyncHosts, OpenAdminer, GetPHPVersions, SetPHPVersion,
     OpenSiteFolder, OpenSiteTerminal, CreateSite,
-    GetSSLStatus, EnableSSL, DisableSSL,
+    GetSSLStatus, EnableSSL, DisableSSL, GetDevWarning,
   } from '../wailsjs/go/main/App.js'
   import { EventsOn, BrowserOpenURL } from '../wailsjs/runtime/runtime.js'
   import Settings from './Settings.svelte'
@@ -15,6 +15,7 @@
 
   let list: services.Info[] = []
   let errorMsg: string = ''         // error general (ej. puerto ocupado)
+  let devWarning: string = ''       // solo en wails dev sin KILTRO_ROOT (ver app.go)
   let busy: Record<string, boolean> = {} // servicio con una acción en curso
 
   let sites: vhosts.Site[] = []
@@ -295,6 +296,7 @@
     offs.push(EventsOn('hosts:changed', refreshHosts))
     // Errores de acciones hechas desde el menú de la bandeja.
     offs.push(EventsOn('app:error', (msg: string) => { errorMsg = msg }))
+    devWarning = await GetDevWarning()
     await refresh()
     await refreshPhpVersions()
     await refreshSites()
@@ -331,6 +333,10 @@
   </nav>
 
   <main>
+    {#if devWarning}
+      <!-- Sin botón de cerrar a propósito: con la raíz equivocada nada funciona. -->
+      <div class="dev-warning">{devWarning}</div>
+    {/if}
     {#if tab === 'settings'}
       <Settings />
     {:else if tab === 'logs'}
@@ -550,6 +556,17 @@
     flex: 1;
     overflow: auto;
     padding: 1.2rem 1.5rem;
+  }
+
+  .dev-warning {
+    padding: 0.6rem 0.9rem;
+    margin-bottom: 1rem;
+    border: 1px solid #92400e;
+    background: #3a2a12;
+    color: #fde68a;
+    border-radius: var(--radius);
+    white-space: pre-wrap;
+    user-select: text; /* para poder copiar el comando */
   }
 
   .alert {

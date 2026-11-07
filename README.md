@@ -86,6 +86,26 @@ Se descomprimen los zip tal cual.
 - Kiltro le pone su propio tema (claro/oscuro según Windows). El original está en
   `templates/adminer/` y se copia a `etc/adminer/` al recargar sitios.
 
+### php y composer en la terminal
+
+| Herramienta | Versión probada | Archivo | Descarga |
+|-------------|-----------------|---------|----------|
+| Composer    | 2.10.2          | `bin/composer/composer.phar` | https://getcomposer.org/download/ ("Latest stable", el `.phar`) o la copia de Laragon (`C:\laragon\bin\composer\composer.phar`) |
+
+- Kiltro genera `bin/shims/php.bat` y `bin/shims/composer.bat`, que llaman al `php.exe` de la
+  versión elegida en Kiltro. Se reescriben al iniciar Kiltro y al cambiar de versión.
+- En **Configuración → php y composer en la terminal**, "Agregar al PATH" pone `bin\shims` al
+  principio del PATH de **tu usuario** (registro `HKCU\Environment`, no pide admin). Va
+  primero para ganarle a otros PHP instalados (Laragon, winget, scoop). "Quitar del PATH" lo saca.
+- Las terminales que ya estaban abiertas no ven el cambio: hay que cerrarlas y abrir una nueva.
+  El botón **Terminal** de un sitio sí lo ve enseguida.
+- Usan el mismo `php.ini` de esa versión. El `extension_dir` lo pone Kiltro con
+  `PHP_INI_SCAN_DIR` (`bin/shims/conf.d/kiltro.ini`), así que también funciona en los PHP que
+  lanza Composer (ej. `@php artisan package:discover`).
+- Si llamas `php` o `composer` desde **otro `.bat`**, usa `call php ...` / `call composer ...`
+  (sin `call`, tu `.bat` termina ahí: es cómo funciona `cmd` con los `.bat`).
+- `composer self-update` actualiza `bin/composer/composer.phar`.
+
 ## Desarrollo
 
 La carpeta `runtime/` hace de "carpeta de la app" en desarrollo (bin, etc, www, data, logs).

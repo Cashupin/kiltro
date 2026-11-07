@@ -91,6 +91,7 @@ func NewManager(onChange func()) (*ServiceManager, error) {
 		},
 	}
 	logger.Printf("Kiltro iniciado. Raíz: %s", config.Path())
+	m.refreshShims()
 	return m, nil
 }
 
@@ -160,6 +161,7 @@ func (m *ServiceManager) SetPHPVersion(name string) error {
 		return err
 	}
 	m.env.Log.Printf("[php] versión elegida: %s", name)
+	m.refreshShims() // php.bat y composer.bat apuntan a la nueva versión
 
 	php, err := m.get("php")
 	if err != nil {

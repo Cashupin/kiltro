@@ -161,6 +161,19 @@ func (a *App) GetAppRoot() string {
 	return root
 }
 
+// GetDevWarning avisa, SOLO en `wails dev`, si falta KILTRO_ROOT: sin esa
+// variable la raíz es build\bin (la carpeta del exe de desarrollo), donde no
+// hay PHP, MySQL ni sitios. En la versión instalada devuelve siempre "".
+func (a *App) GetDevWarning() string {
+	if !devBuild || os.Getenv(config.EnvRoot) != "" {
+		return ""
+	}
+	root, _ := config.AppRoot()
+	return "Modo desarrollo sin KILTRO_ROOT: Kiltro está usando " + root +
+		" como carpeta de la app (ahí no hay bin, www ni data). Cierra wails dev y levántalo así, desde la carpeta del proyecto:\n" +
+		`$env:KILTRO_ROOT = "$PWD\runtime"; wails dev`
+}
+
 // GetServices devuelve el estado de todos los servicios.
 func (a *App) GetServices() ([]services.Info, error) {
 	if err := a.ready(); err != nil {
@@ -335,6 +348,32 @@ func (a *App) UninstallCA() error {
 		return err
 	}
 	return a.manager.UninstallCA()
+}
+
+// --- php y composer en la terminal ---
+
+// GetShimsStatus dice si bin\shims está en el PATH del usuario.
+func (a *App) GetShimsStatus() (services.ShimsStatus, error) {
+	if err := a.ready(); err != nil {
+		return services.ShimsStatus{}, err
+	}
+	return a.manager.ShimsStatus(), nil
+}
+
+// AddShimsToPath agrega bin\shims al PATH del usuario (sin admin).
+func (a *App) AddShimsToPath() error {
+	if err := a.ready(); err != nil {
+		return err
+	}
+	return a.manager.AddShimsToPath()
+}
+
+// RemoveShimsFromPath quita bin\shims del PATH del usuario.
+func (a *App) RemoveShimsFromPath() error {
+	if err := a.ready(); err != nil {
+		return err
+	}
+	return a.manager.RemoveShimsFromPath()
 }
 
 // --- Logs ---

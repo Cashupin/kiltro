@@ -5,6 +5,8 @@ import {logview} from '../models';
 import {main} from '../models';
 import {config} from '../models';
 
+export function AddShimsToPath():Promise<void>;
+
 export function ChooseFolder(arg1:string):Promise<string>;
 
 export function ClearLog(arg1:string):Promise<void>;
@@ -17,6 +19,8 @@ export function EnableSSL():Promise<void>;
 
 export function GetAppRoot():Promise<string>;
 
+export function GetDevWarning():Promise<string>;
+
 export function GetHostsStatus():Promise<services.HostsStatus>;
 
 export function GetLogs():Promise<Array<logview.Log>>;
@@ -28,6 +32,8 @@ export function GetSSLStatus():Promise<services.SSLStatus>;
 export function GetServices():Promise<Array<services.Info>>;
 
 export function GetSettings():Promise<main.SettingsView>;
+
+export function GetShimsStatus():Promise<services.ShimsStatus>;
 
 export function GetSites():Promise<main.SitesResult>;
 
@@ -42,6 +48,8 @@ export function OpenSiteTerminal(arg1:string):Promise<void>;
 export function ReadLog(arg1:string):Promise<logview.Result>;
 
 export function ReloadSites():Promise<void>;
+
+export function RemoveShimsFromPath():Promise<void>;
 
 export function SaveSettings(arg1:config.Settings):Promise<Array<string>>;
 

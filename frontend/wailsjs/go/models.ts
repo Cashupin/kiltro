@@ -215,6 +215,26 @@ export namespace services {
 	        this.error = source["error"];
 	    }
 	}
+	export class ShimsStatus {
+	    dir: string;
+	    inPath: boolean;
+	    php: string;
+	    composer: boolean;
+	    error: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new ShimsStatus(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.dir = source["dir"];
+	        this.inPath = source["inPath"];
+	        this.php = source["php"];
+	        this.composer = source["composer"];
+	        this.error = source["error"];
+	    }
+	}
 
 }
 
