@@ -1,10 +1,12 @@
 # Kiltro — entorno de desarrollo local liviano para Windows
 
-> "Kiltro" es nombre provisional. Si cambia, actualizar este archivo.
+> Este archivo es la guía para trabajar en Kiltro con Claude Code (y para cualquiera que
+> contribuya): reglas, estructura, decisiones tomadas y el plan por etapas. Para usar Kiltro,
+> ver README.md; para compilarlo, docs/DEVELOPMENT.md.
 
 ## Qué es
 
-App de escritorio para Windows que reemplaza a Laragon: levanta servicios portables
+App de escritorio para Windows que levanta servicios portables
 (Nginx, PHP, MySQL, Redis), genera vhosts `*.test` automáticamente por cada carpeta en `www/`,
 gestiona el archivo hosts, certificados SSL locales y permite cambiar la versión de PHP.
 
@@ -75,7 +77,7 @@ Todas las rutas se resuelven relativas al ejecutable, nunca rutas absolutas hard
 - En desarrollo, la carpeta runtime vive en `kiltro/runtime/` (ignorada en git) y se
   apunta con `KILTRO_ROOT`.
 - `bin/`, `data/`, `logs/`, `etc/` y `www/` NO van al repo (.gitignore). Los binarios se
-  descargan a mano por ahora; documentar en README qué versión va en qué carpeta.
+  descargan con `tools/fetch-bins.ps1` (versiones y SHA-256 en `tools/bins.json`).
 
 ## Reglas críticas (leer antes de tocar procesos)
 
@@ -105,9 +107,9 @@ Todas las rutas se resuelven relativas al ejecutable, nunca rutas absolutas hard
 8. **Dominio local:** `.test` (nunca `.dev` ni `.local`).
 9. Toda acción de servicios se loguea en `logs/kiltro.log` con timestamp.
 
-## Puntos conocidos a resolver en su etapa
+## Puntos a tener en cuenta
 
-- **System tray:** resuelto en la etapa 6 con `fyne.io/systray` (ver `internal/tray`).
+- **System tray:** `fyne.io/systray` (ver `internal/tray`).
 - **Cambio de versión de PHP:** cada versión con su propio `php.ini`. Las extensiones (DLL)
   deben corresponder a esa versión exacta.
 
@@ -136,7 +138,7 @@ Trabajar **una etapa a la vez**. No adelantar trabajo de etapas siguientes.
         botón para desinstalar la CA de mkcert.
   - [x] 8b: Visor de logs (pestaña Logs: últimas líneas, actualización automática, copiar,
         abrir carpeta, vaciar).
-  - [x] 8c: Redis (5.0.14.1 de Laragon), `redis.conf` generado, apagado con `redis-cli shutdown`.
+  - [x] 8c: Redis (5.0.14.1, port de tporadowski), `redis.conf` generado, apagado con `redis-cli shutdown`.
 - [x] **Etapa 9:** Pulido de la UI y del flujo de uso.
   - [x] 9a: Flujo de uso.
     - Ocultar las herramientas internas (`adminer.test`) de la lista de "Sitios": se usan desde
@@ -149,10 +151,9 @@ Trabajar **una etapa a la vez**. No adelantar trabajo de etapas siguientes.
     - Estado con punto de color, botones ▶/■, "Iniciar todo" / "Detener todo" arriba.
     - Barra superior con el nombre; la ruta raíz pasa a Configuración.
     - Hosts y HTTPS agrupados en un bloque; paleta con acento azul (como el tema de Adminer).
-  - [x] 9c: Ícono propio de Kiltro (SVG → `.ico` con varios tamaños; exe y bandeja; hoy es la
-        "W" de la plantilla de Wails).
+  - [x] 9c: Ícono propio de Kiltro (SVG → `.ico` con varios tamaños; exe y bandeja).
   - [x] 9d: `php` y `composer` en la terminal (opcional, con un botón en Configuración).
-    - Composer 2.10.2 copiado de Laragon a `bin/composer/composer.phar`.
+    - Composer 2.10.2 en `bin/composer/composer.phar`.
     - Kiltro genera `bin/shims/php.bat` y `composer.bat` que apuntan a la versión de PHP
       elegida; la carpeta `shims` se agrega UNA vez al PATH del usuario (HKCU, sin admin).
       Al cambiar de versión solo se reescriben los .bat (el PATH no se vuelve a tocar).
@@ -162,7 +163,7 @@ Trabajar **una etapa a la vez**. No adelantar trabajo de etapas siguientes.
     versiones, con el descargador de la Etapa 12). Sin regla de firewall (Nginx escucha en
     127.0.0.1; con "red local" Windows pregunta una vez). Licencia GPL-3.0, copyright Cashupin.
     El repo tiene la receta; el instalador y el zip se suben a GitHub Releases (no al repo).
-  - Instalar en una carpeta escribible sin admin (ej. `C:\kiltro`, como Laragon), NO en
+  - Instalar en una carpeta escribible sin admin (ej. `C:\kiltro`), NO en
     `Program Files`: Kiltro escribe `etc/`, `data/` y `logs/` junto al exe. La versión portable
     (zip) tiene que seguir funcionando igual.
   - Decidido: el archivo hosts se sigue escribiendo con UAC cada vez que cambian los dominios
@@ -217,8 +218,8 @@ Notas para las próximas etapas:
   el exe) hacia `etc/nginx/sites/`; "Recargar sitios" valida con `-t` y aplica con `-s reload`.
 - Si el master de un servicio muere de golpe, sus hijos NO mueren solos en Windows: usar
   `procutil.KillTree` al detectar la salida (ver `nginx.go`, `watch`).
-- PHP probado con 8.4.27 NTS (por defecto, la más nueva) y 8.3.33 TS (de Laragon). Versión elegida
-  en `config.json` (`internal/config/config.go`, por ahora solo el campo `php`); el orden es
+- PHP probado con 8.4.27 NTS (por defecto, la más nueva) y 8.3.33 TS. Versión elegida
+  en `config.json` (campo `php`, `internal/config/config.go`); el orden es
   numérico (`phpversions.go`). Cambiar de versión reinicia solo PHP, Nginx no se toca.
   `php.ini` vive junto a cada versión y Kiltro solo lo crea si falta (desde `php.ini-development`);
   `extension_dir` se pasa con `-d` al arrancar. 4 workers en 9000-9003 detrás de `upstream php_workers`.
@@ -258,7 +259,7 @@ Notas para las próximas etapas:
   últimos 256 KB. Vaciar = truncar a 0; es seguro con el servicio corriendo porque Kiltro, Nginx
   y MySQL escriben en modo append (probado: sin bytes nulos). "Abrir carpeta" usa
   `windows.ShellExecute` para que el Explorador no quede dentro del Job.
-- Redis probado con 5.0.14.1 (port de tporadowski, copiado de Laragon) en
+- Redis probado con 5.0.14.1 (port de tporadowski) en
   `bin/redis/redis-x64-5.0.14.1/`. `etc/redis/redis.conf` generado en cada arranque (solo
   `127.0.0.1`, datos en `data/redis/dump.rdb`, log en `logs/redis/redis.log`). Apagado con
   `redis-cli -p <puerto con que arrancó> shutdown` (guarda el RDB); matar solo tras 30 s.
