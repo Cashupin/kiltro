@@ -3,9 +3,10 @@
   import { onMount } from 'svelte'
   import {
     GetSettings, SaveSettings, ChooseFolder, UninstallCA, GetAppRoot,
-    GetShimsStatus, AddShimsToPath, RemoveShimsFromPath,
+    GetShimsStatus, AddShimsToPath, RemoveShimsFromPath, GetVersion,
   } from '../wailsjs/go/main/App.js'
   import { config, services } from '../wailsjs/go/models'
+  import { BrowserOpenURL } from '../wailsjs/runtime/runtime.js'
 
   // Valores del formulario
   let httpPort = 80
@@ -135,8 +136,10 @@
   }
 
   let root = '…' // carpeta de la app (sección "Acerca de")
+  let version = ""
   onMount(async () => {
     root = await GetAppRoot()
+    version = await GetVersion()
     await load()
     await loadShims()
   })
@@ -274,7 +277,8 @@
   <div class="card">
     <div class="card-title">Acerca de</div>
     <div class="body">
-      <p class="small first">Carpeta de la app: <code class="sel">{root}</code></p>
+      <p class="small first">Kiltro <strong>{version}</strong> · software libre (GPL-3.0) · <a href="https://github.com/Cashupin/kiltro" on:click|preventDefault={() => BrowserOpenURL('https://github.com/Cashupin/kiltro')}>github.com/Cashupin/kiltro</a></p>
+      <p class="small">Carpeta de la app: <code class="sel">{root}</code></p>
       <p class="muted small">Ahí están <code>bin\</code>, <code>etc\</code>, <code>data\</code>, <code>logs\</code> y <code>config.json</code>.</p>
     </div>
   </div>

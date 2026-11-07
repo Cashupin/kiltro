@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
   Descarga los binarios que usa Kiltro (Nginx, PHP, MySQL, Redis, Composer,
   Adminer, mkcert) y los deja en una carpeta bin\ lista para usar.

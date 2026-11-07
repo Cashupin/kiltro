@@ -49,6 +49,7 @@ func (a *App) startup(ctx context.Context) {
 		return
 	}
 	a.manager = m
+	m.LogPrintf("Kiltro %s", version)
 
 	tray.Start(a.trayIcon, a.trayServices(), tray.Callbacks{
 		Open:     a.showWindow,

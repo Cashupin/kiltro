@@ -1,0 +1,32 @@
+Kiltro - versión portable
+=========================
+
+Entorno de desarrollo local liviano para Windows: Nginx, PHP, MySQL y Redis,
+con un sitio https://<carpeta>.test por cada carpeta dentro de www\.
+
+Cómo usarlo
+-----------
+1. Deja esta carpeta "kiltro" en un lugar donde puedas escribir sin ser
+   administrador, por ejemplo C:\kiltro. NO en "Archivos de programa":
+   Kiltro guarda su configuración, bases de datos y logs aquí mismo.
+2. Abre kiltro.exe.
+3. Pulsa "Iniciar todo". Tus proyectos van en www\ (una carpeta por sitio).
+
+La primera vez Windows puede pedir permiso de administrador para el archivo
+hosts (para que funcionen los dominios .test). Al activar HTTPS, Windows
+muestra un aviso para confiar en el certificado de Kiltro: hay que aceptar.
+(Con el instalador, kiltro-setup-<versión>.exe, ese aviso no aparece.)
+
+Para quitarlo
+-------------
+1. En Kiltro: Configuración → "Desinstalar certificado de Kiltro" (si
+   activaste HTTPS) y "Quitar del PATH" (si agregaste php/composer).
+2. Pulsa "Actualizar hosts" con todos los sitios borrados, o quita a mano el
+   bloque "# KILTRO START" ... "# KILTRO END" de
+   C:\Windows\System32\drivers\etc\hosts.
+3. Cierra Kiltro ("Salir" en el ícono de la bandeja) y borra la carpeta.
+   Ojo: www\ (tus proyectos) y data\ (tus bases de datos) están adentro.
+
+Licencia: GPL-3.0 (ver LICENSE). Los programas incluidos tienen sus propias
+licencias: ver THIRD-PARTY-NOTICES.md.
+Código fuente: https://github.com/Cashupin/kiltro

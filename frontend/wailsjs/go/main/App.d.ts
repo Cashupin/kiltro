@@ -37,6 +37,8 @@ export function GetShimsStatus():Promise<services.ShimsStatus>;
 
 export function GetSites():Promise<main.SitesResult>;
 
+export function GetVersion():Promise<string>;
+
 export function OpenAdminer():Promise<void>;
 
 export function OpenLogsFolder():Promise<void>;

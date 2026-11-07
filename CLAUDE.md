@@ -301,3 +301,10 @@ Notas para las próximas etapas:
   Opciones del instalador (desmarcadas): escritorio y "iniciar con Windows" (HKCU Run →
   `kiltro.exe --tray`, que usa `StartHidden` de Wails). Ojo: en NSIS `$Desktop`/`$Startup` son
   constantes; las variables se llaman `OptDesktop`/`OptStartup`.
+- Release (10d): `tools/release.ps1` → `build/release/<versión>/` (setup, zip portable con
+  `LEEME.txt` de `tools/portable-LEEME.txt`, `SHA256SUMS.txt` con LF). Versión: SOLO
+  `wails.json` → `info.productVersion`; llega al exe con `-ldflags "-X main.version=..."`
+  (`version.go`; sin el flag dice "dev"), se ve en "Acerca de" y en el log al iniciar.
+  `release.ps1` saca del paquete las carpetas que ya no están en `bins.json`.
+  `tools/sandbox.ps1` abre Windows Sandbox con la versión (hay que activar la característica).
+  Pasos de publicación en `docs/RELEASING.md`. Los .ps1 van en UTF-8 CON BOM (PowerShell 5.1).

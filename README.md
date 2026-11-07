@@ -263,6 +263,10 @@ Necesita NSIS (`winget install NSIS.NSIS`) con `C:\Program Files (x86)\NSIS` en 
 versión sale de `info.productVersion` en `wails.json`. El script es
 `build/windows/installer/project.nsi` (`wails_tools.nsh` lo regenera Wails: no editarlo).
 
+Para armar una versión completa (instalador + zip portable + checksums) se usa
+`tools\release.ps1`. Los pasos para publicarla en GitHub están en
+[`docs/RELEASING.md`](docs/RELEASING.md).
+
 Qué hace el instalador (pide admin una vez):
 - Instala en `C:\kiltro` (no se deja elegir Archivos de programa: Kiltro escribe junto al exe)
   y da permiso de Modificar a Usuarios en esa carpeta.

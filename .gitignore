@@ -14,3 +14,5 @@ runtime/**
 build/payload
 # Temporal de wails build -nsis (bootstrapper de WebView2)
 build/windows/installer/tmp
+# Versiones armadas por tools/release.ps1
+build/release

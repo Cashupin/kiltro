@@ -66,6 +66,10 @@ export function GetSites() {
   return window['go']['main']['App']['GetSites']();
 }
 
+export function GetVersion() {
+  return window['go']['main']['App']['GetVersion']();
+}
+
 export function OpenAdminer() {
   return window['go']['main']['App']['OpenAdminer']();
 }
