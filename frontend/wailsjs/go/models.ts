@@ -73,6 +73,24 @@ export namespace services {
 	        this.detail = source["detail"];
 	    }
 	}
+	export class PHPVersion {
+	    name: string;
+	    version: string;
+	    nts: boolean;
+	    selected: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new PHPVersion(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.version = source["version"];
+	        this.nts = source["nts"];
+	        this.selected = source["selected"];
+	    }
+	}
 
 }
 

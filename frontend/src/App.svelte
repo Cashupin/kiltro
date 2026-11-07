@@ -3,7 +3,7 @@
   import { onMount, onDestroy } from 'svelte'
   import {
     GetAppRoot, GetServices, StartService, StopService, GetSites, ReloadSites,
-    GetHostsStatus, SyncHosts, OpenAdminer,
+    GetHostsStatus, SyncHosts, OpenAdminer, GetPHPVersions, SetPHPVersion,
   } from '../wailsjs/go/main/App.js'
   import { EventsOn, BrowserOpenURL } from '../wailsjs/runtime/runtime.js'
   import type { services, vhosts } from '../wailsjs/go/models'
@@ -20,6 +20,38 @@
 
   let hostsStatus: services.HostsStatus | null = null
   let syncing = false
+
+  let phpVersions: services.PHPVersion[] = []
+  let phpChoice = ''         // nombre de la carpeta elegida en el desplegable
+  let switchingPhp = false   // true mientras se guarda/reinicia PHP
+
+  // "8.4.27 (NTS)"; si la carpeta no trae versión en el nombre, se muestra el nombre.
+  function phpLabel(v: services.PHPVersion): string {
+    return (v.version || v.name) + (v.nts ? ' (NTS)' : ' (TS)')
+  }
+
+  async function refreshPhpVersions() {
+    try {
+      phpVersions = (await GetPHPVersions()) ?? []
+      phpChoice = phpVersions.find((v) => v.selected)?.name ?? ''
+    } catch (e) {
+      errorMsg = String(e)
+    }
+  }
+
+  async function changePhp() {
+    errorMsg = ''
+    switchingPhp = true
+    try {
+      await SetPHPVersion(phpChoice)
+    } catch (e) {
+      errorMsg = String(e)
+    } finally {
+      switchingPhp = false
+      await refreshPhpVersions()
+      await refresh()
+    }
+  }
 
   // Adminer está instalado si aparece entre los sitios (como herramienta).
   $: hasAdminer = sites.some((x) => x.tool && x.name === 'adminer')
@@ -130,6 +162,7 @@
     offs.push(EventsOn('services:changed', refresh))
     offs.push(EventsOn('hosts:changed', refreshHosts))
     await refresh()
+    await refreshPhpVersions()
     await refreshSites()
     await refreshHosts()
   })
@@ -144,7 +177,19 @@
     <tbody>
       {#each list as s (s.name)}
         <tr>
-          <td class="name">{names[s.name] ?? s.name}</td>
+          <td class="name">
+            {names[s.name] ?? s.name}
+            {#if s.name === 'php' && phpVersions.length > 0}
+              <!-- Cambiar la versión reinicia PHP si está corriendo -->
+              <select bind:value={phpChoice} on:change={changePhp}
+                disabled={switchingPhp || busy['php'] || phpVersions.length < 2}
+                title="Versión de PHP (si PHP está corriendo, se reinicia)">
+                {#each phpVersions as v (v.name)}
+                  <option value={v.name}>{phpLabel(v)}</option>
+                {/each}
+              </select>
+            {/if}
+          </td>
           <td class="ports">{portsLabel(s.ports)}</td>
           <td>
             <span class="status {s.status}">{labels[s.status] ?? s.status}</span>
@@ -246,6 +291,13 @@
 
   .name {
     font-weight: bold;
+  }
+
+  .name select {
+    margin-left: 0.6rem;
+    font-weight: normal;
+    padding: 0.2rem 0.3rem;
+    border-radius: 3px;
   }
 
   .ports {

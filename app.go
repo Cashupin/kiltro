@@ -89,6 +89,22 @@ func (a *App) StopService(name string) error {
 	return a.manager.Stop(name)
 }
 
+// GetPHPVersions devuelve las versiones de PHP instaladas (la elegida viene marcada).
+func (a *App) GetPHPVersions() ([]services.PHPVersion, error) {
+	if err := a.ready(); err != nil {
+		return nil, err
+	}
+	return a.manager.PHPVersions(), nil
+}
+
+// SetPHPVersion cambia la versión de PHP (reinicia PHP si está corriendo).
+func (a *App) SetPHPVersion(name string) error {
+	if err := a.ready(); err != nil {
+		return err
+	}
+	return a.manager.SetPHPVersion(name)
+}
+
 // SitesResult es lo que recibe la UI: los sitios y las carpetas ignoradas.
 type SitesResult struct {
 	Sites   []vhosts.Site    `json:"sites"`

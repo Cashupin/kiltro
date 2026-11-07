@@ -10,6 +10,10 @@ export function GetHostsStatus() {
   return window['go']['main']['App']['GetHostsStatus']();
 }
 
+export function GetPHPVersions() {
+  return window['go']['main']['App']['GetPHPVersions']();
+}
+
 export function GetServices() {
   return window['go']['main']['App']['GetServices']();
 }
@@ -24,6 +28,10 @@ export function OpenAdminer() {
 
 export function ReloadSites() {
   return window['go']['main']['App']['ReloadSites']();
+}
+
+export function SetPHPVersion(arg1) {
+  return window['go']['main']['App']['SetPHPVersion'](arg1);
 }
 
 export function StartService(arg1) {

@@ -1,5 +1,5 @@
-// Package config centraliza la resolución de rutas de la app (y más adelante
-// la lectura/escritura de config.json).
+// Package config centraliza la resolución de rutas de la app y la
+// lectura/escritura de config.json (ver config.go).
 //
 // Regla del proyecto: NINGÚN otro paquete calcula rutas por su cuenta.
 // Todo lo que necesite una ruta (bin/, etc/, www/, data/, logs/...) la pide

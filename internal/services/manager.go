@@ -107,24 +107,60 @@ func (m *ServiceManager) Start(name string) error {
 	if err != nil {
 		return err
 	}
+	return m.start(s)
+}
+
+// start arranca un servicio (sin tomar opMu: lo toma quien llama).
+func (m *ServiceManager) start(s Service) error {
 	if st := s.Status(); st == StatusRunning || st == StatusStarting {
 		return nil // ya está corriendo
 	}
 
 	for _, port := range s.Ports() {
 		if err := procutil.CheckPortFree(port); err != nil {
-			m.env.Log.Printf("[%s] no se inicia: %v", name, err)
+			m.env.Log.Printf("[%s] no se inicia: %v", s.Name(), err)
 			return err
 		}
 	}
 
-	m.env.Log.Printf("[%s] iniciando...", name)
+	m.env.Log.Printf("[%s] iniciando...", s.Name())
 	if err := s.Start(); err != nil {
-		m.env.Log.Printf("[%s] error al iniciar: %v", name, err)
+		m.env.Log.Printf("[%s] error al iniciar: %v", s.Name(), err)
 		return err
 	}
-	m.env.Log.Printf("[%s] iniciado", name)
+	m.env.Log.Printf("[%s] iniciado", s.Name())
 	return nil
+}
+
+// PHPVersions devuelve las versiones de PHP instaladas en bin/php/.
+func (m *ServiceManager) PHPVersions() []PHPVersion {
+	return PHPVersions()
+}
+
+// SetPHPVersion guarda la versión de PHP elegida (en config.json) y, si PHP
+// está corriendo, lo reinicia con la nueva. Nginx no se toca: los workers
+// nuevos escuchan en los mismos puertos 9000-9003.
+func (m *ServiceManager) SetPHPVersion(name string) error {
+	m.opMu.Lock()
+	defer m.opMu.Unlock()
+
+	if err := savePHPVersion(name); err != nil {
+		return err
+	}
+	m.env.Log.Printf("[php] versión elegida: %s", name)
+
+	php, err := m.get("php")
+	if err != nil {
+		return err
+	}
+	if st := php.Status(); st != StatusRunning && st != StatusStarting {
+		m.env.Notify()
+		return nil // detenido: se usará la próxima vez que se inicie
+	}
+	if err := m.stop(php); err != nil {
+		return err
+	}
+	return m.start(php)
 }
 
 // Stop detiene un servicio de forma limpia.

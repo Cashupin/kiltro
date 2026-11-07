@@ -20,11 +20,10 @@ Los binarios van dentro de `bin/` relativo al ejecutable. En desarrollo, eso es
 | Servicio | Versión probada | Carpeta                           | Descarga                                   |
 |----------|-----------------|-----------------------------------|--------------------------------------------|
 | Nginx    | 1.30.4          | `bin/nginx/nginx-1.30.4/nginx.exe` | https://nginx.org/en/download.html (zip de Windows) |
-| PHP      | 8.3.33 (x64)    | `bin/php/php-8.3.33-Win32-vs16-x64/php-cgi.exe` | https://windows.php.net/download/ (zip; se recomienda **NTS**) |
-
+| PHP      | 8.4.27 NTS (x64), 8.3.33 TS (x64) | `bin/php/php-8.4.27-1-nts-Win32-vs17-x64/php-cgi.exe` | https://windows.php.net/download/ (zip; se recomienda **NTS**) |
 | MySQL    | 8.4.3 LTS (x64) | `bin/mysql/mysql-8.4.3-winx64/bin/mysqld.exe` | https://dev.mysql.com/downloads/mysql/ (ZIP Archive) |
 
-Se descomprimen los zip tal cual. Si hay varias versiones, por ahora se usa la mayor.
+Se descomprimen los zip tal cual.
 
 - **Nginx:** la carpeta `nginx-<versión>` debe contener `nginx.exe`, `conf/mime.types` y `conf/fastcgi.conf`.
 - **PHP:** la carpeta `php-<versión>` debe contener `php-cgi.exe`, `ext/` y `php.ini-development`.
@@ -35,6 +34,19 @@ Se descomprimen los zip tal cual. Si hay varias versiones, por ahora se usa la m
   No hace falta `my.ini`: Kiltro genera el suyo en `etc/mysql/my.ini`. Se recomienda el zip
   oficial completo; la copia que trae Laragon no incluye `lib/private` (datos ICU) y MySQL
   muestra una advertencia al arrancar (lo básico, incluido `REGEXP`, funciona igual).
+
+### Varias versiones de PHP
+
+- Cada versión va en su propia carpeta dentro de `bin/php/` (ej. `php-8.3.33-.../` y
+  `php-8.4.27-1-nts-.../`). Se elige con el desplegable de la fila de PHP; si PHP está
+  corriendo, se reinicia con la nueva versión (Nginx sigue igual).
+- La elección se guarda en `config.json`, junto al exe. Sin elección, se usa la versión más nueva.
+- Cada carpeta tiene su propio `php.ini` y sus extensiones (`ext/`): un cambio en el
+  `php.ini` de 8.3 no afecta a 8.4.
+- Se recomienda la build **NTS** (Non Thread Safe): es la indicada para FastCGI y algo más
+  liviana. El desplegable muestra (NTS) o (TS) al lado de cada versión.
+- Las builds `vs17` necesitan el "Visual C++ Redistributable 2015-2022" (casi siempre ya
+  está instalado en Windows 10/11).
 
 ### MySQL
 

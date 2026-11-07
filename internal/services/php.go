@@ -8,12 +8,10 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
-	"sort"
 	"strings"
 	"sync"
 	"time"
 
-	"kiltro/internal/config"
 	"kiltro/internal/procutil"
 )
 
@@ -126,9 +124,12 @@ func (p *PHP) Start() error {
 
 	p.setStatus(StatusStarting, "")
 
-	exe, err := phpCgiExe()
+	exe, warning, err := phpCgiExe()
 	if err != nil {
 		return p.fail(err)
+	}
+	if warning != "" {
+		p.env.Log.Printf("[php] ADVERTENCIA: %s", warning)
 	}
 	ini, err := ensurePhpIni(filepath.Dir(exe))
 	if err != nil {
@@ -328,17 +329,7 @@ func (p *PHP) Stop() error {
 
 // --- helpers ---
 
-// phpCgiExe busca bin/php/php-*/php-cgi.exe. Si hay varias versiones usa la
-// "mayor" por orden alfabético (el selector de versión es la etapa 5).
-func phpCgiExe() (string, error) {
-	matches, _ := filepath.Glob(config.Path("bin", "php", "php-*", "php-cgi.exe"))
-	if len(matches) == 0 {
-		return "", fmt.Errorf("no se encontró PHP: se esperaba %s",
-			config.Path("bin", "php", "php-<versión>", "php-cgi.exe"))
-	}
-	sort.Strings(matches)
-	return matches[len(matches)-1], nil
-}
+// phpCgiExe (qué versión usar) está en phpversions.go.
 
 // ensurePhpIni devuelve la ruta del php.ini de esa versión de PHP. Si no existe,
 // lo crea copiando php.ini-development y activando phpDefaultExtensions.
