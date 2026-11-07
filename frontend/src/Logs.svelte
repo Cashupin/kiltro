@@ -95,9 +95,9 @@
       {/each}
     </select>
     <label class="check"><input type="checkbox" bind:checked={follow} /> Actualizar solo</label>
-    <button on:click={load}>Recargar</button>
+    <button class="ghost" on:click={load}>↻ Recargar</button>
     <button on:click={copy} disabled={!result || result.lines.length === 0}>{copied ? 'Copiado ✓' : 'Copiar'}</button>
-    <button on:click={() => OpenLogsFolder()}>Abrir carpeta</button>
+    <button class="ghost" on:click={() => OpenLogsFolder()}>Abrir carpeta</button>
     {#if !confirmClear}
       <button on:click={() => (confirmClear = true)} disabled={!result || result.size === 0}>Vaciar</button>
     {:else}
@@ -126,17 +126,13 @@
   section {
     display: flex;
     flex-direction: column;
-    height: calc(100vh - 11rem);
+    height: 100%;
   }
   .toolbar {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     gap: 0.5rem;
-  }
-  select {
-    padding: 0.25rem 0.4rem;
-    border-radius: 3px;
   }
   .check {
     display: flex;
@@ -146,45 +142,26 @@
   }
   pre {
     flex: 1;
+    min-height: 200px;
     overflow: auto;
-    margin: 0.4rem 0 0;
-    padding: 0.6rem 0.8rem;
-    background: #111a26;
-    border: 1px solid #2c3e56;
-    border-radius: 4px;
-    font: 12px/1.45 Consolas, 'Cascadia Mono', monospace;
+    margin: 0.5rem 0 0;
+    padding: 0.7rem 0.9rem;
+    background: #0b111b;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font: 12px/1.5 var(--mono);
     text-align: left;
     white-space: pre-wrap;
     word-break: break-all;
   }
   .err {
-    color: #ff8a80;
+    color: #fca5a5;
   }
   .warn {
-    color: #ffd54f;
-  }
-  .muted {
-    opacity: 0.6;
+    color: #fcd34d;
   }
   .small {
     font-size: 0.85em;
-    margin: 0.5rem 0 0;
-  }
-  .error {
-    color: #ff8a80;
-  }
-  button {
-    padding: 0.3rem 0.8rem;
-    border: none;
-    border-radius: 3px;
-    cursor: pointer;
-  }
-  button:disabled {
-    opacity: 0.5;
-    cursor: default;
-  }
-  .danger {
-    background: #c62828;
-    color: white;
+    margin: 0.6rem 0 0;
   }
 </style>

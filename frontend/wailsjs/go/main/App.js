@@ -86,8 +86,16 @@ export function SetPHPVersion(arg1) {
   return window['go']['main']['App']['SetPHPVersion'](arg1);
 }
 
+export function StartAll() {
+  return window['go']['main']['App']['StartAll']();
+}
+
 export function StartService(arg1) {
   return window['go']['main']['App']['StartService'](arg1);
+}
+
+export function StopAll() {
+  return window['go']['main']['App']['StopAll']();
 }
 
 export function StopService(arg1) {

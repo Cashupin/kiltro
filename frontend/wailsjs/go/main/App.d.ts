@@ -47,7 +47,11 @@ export function SaveSettings(arg1:config.Settings):Promise<Array<string>>;
 
 export function SetPHPVersion(arg1:string):Promise<void>;
 
+export function StartAll():Promise<void>;
+
 export function StartService(arg1:string):Promise<void>;
+
+export function StopAll():Promise<void>;
 
 export function StopService(arg1:string):Promise<void>;
 

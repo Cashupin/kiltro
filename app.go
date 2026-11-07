@@ -119,11 +119,29 @@ func (a *App) trayToggle(name string) {
 }
 
 func (a *App) trayStartAll() {
-	err := a.manager.StartAll()
-	go a.syncHostsInBackground() // Nginx pudo haber arrancado
-	if err != nil {
+	if err := a.StartAll(); err != nil {
 		a.reportError(err)
 	}
+}
+
+// StartAll inicia todos los servicios en orden (botón "Iniciar todo" y bandeja).
+// Si uno falla, sigue con los demás y devuelve los errores juntos.
+func (a *App) StartAll() error {
+	if err := a.ready(); err != nil {
+		return err
+	}
+	err := a.manager.StartAll()
+	go a.syncHostsInBackground() // Nginx pudo haber arrancado
+	return err
+}
+
+// StopAll detiene todos los servicios (botón "Detener todo").
+func (a *App) StopAll() error {
+	if err := a.ready(); err != nil {
+		return err
+	}
+	a.manager.StopAll()
+	return nil
 }
 
 // reportError muestra un error que ocurrió desde la bandeja: abre la ventana

@@ -1,7 +1,7 @@
 <script lang="ts">
   // Pantalla de configuración. Sintaxis clásica de Svelte (sin runes), ver CLAUDE.md.
   import { onMount } from 'svelte'
-  import { GetSettings, SaveSettings, ChooseFolder, UninstallCA } from '../wailsjs/go/main/App.js'
+  import { GetSettings, SaveSettings, ChooseFolder, UninstallCA, GetAppRoot } from '../wailsjs/go/main/App.js'
   import { config } from '../wailsjs/go/models'
 
   // Valores del formulario
@@ -95,98 +95,123 @@
     }
   }
 
-  onMount(load)
+  let root = '…' // carpeta de la app (sección "Acerca de")
+  onMount(async () => {
+    root = await GetAppRoot()
+    await load()
+  })
 </script>
 
-<section>
+<section class="settings">
   {#if loadError}
     <p class="error">{loadError}. Se muestran los valores por defecto; al guardar se corrige el archivo.</p>
   {/if}
 
-  <h2>Puertos</h2>
-  <div class="grid">
-    <label for="http">Nginx HTTP</label>
-    <input id="http" type="number" min="1" max="65535" bind:value={httpPort} />
+  <div class="card">
+    <div class="card-title">Puertos</div>
+    <div class="body grid">
+      <label for="http">Nginx HTTP</label>
+      <input id="http" type="number" min="1" max="65535" bind:value={httpPort} />
 
-    <label for="https">Nginx HTTPS</label>
-    <input id="https" type="number" min="1" max="65535" bind:value={httpsPort} />
+      <label for="https">Nginx HTTPS</label>
+      <input id="https" type="number" min="1" max="65535" bind:value={httpsPort} />
 
-    <label for="mysql">MySQL</label>
-    <input id="mysql" type="number" min="1" max="65535" bind:value={mysqlPort} />
+      <label for="mysql">MySQL</label>
+      <input id="mysql" type="number" min="1" max="65535" bind:value={mysqlPort} />
 
-    <label for="redis">Redis</label>
-    <input id="redis" type="number" min="1" max="65535" bind:value={redisPort} />
+      <label for="redis">Redis</label>
+      <input id="redis" type="number" min="1" max="65535" bind:value={redisPort} />
 
-    <label for="phpbase">PHP (primer puerto)</label>
-    <div>
-      <input id="phpbase" type="number" min="1" max="65535" bind:value={phpBasePort} />
-      <span class="muted">workers en {phpBasePort}–{phpLastPort}</span>
+      <label for="phpbase">PHP (primer puerto)</label>
+      <div>
+        <input id="phpbase" type="number" min="1" max="65535" bind:value={phpBasePort} />
+        <span class="muted hint">workers en {phpBasePort}–{phpLastPort}</span>
+      </div>
+
+      <label for="workers">Workers de PHP</label>
+      <div>
+        <input id="workers" type="number" min="1" max="16" bind:value={phpWorkers} />
+        <span class="muted hint">peticiones PHP que se atienden a la vez</span>
+      </div>
     </div>
-
-    <label for="workers">Workers de PHP</label>
-    <div>
-      <input id="workers" type="number" min="1" max="16" bind:value={phpWorkers} />
-      <span class="muted">peticiones PHP que se atienden a la vez</span>
-    </div>
-  </div>
-  {#if mysqlChanged}
-    <p class="warn">Si cambias el puerto de MySQL, actualiza <code>DB_PORT</code> en el <code>.env</code> de tus proyectos.</p>
-  {/if}
-
-  <h2>Red</h2>
-  <label class="check">
-    <input type="checkbox" bind:checked={lan} />
-    Accesible desde la red local
-  </label>
-  <p class="muted small">
-    Apagado (recomendado): los sitios solo responden en esta PC. Encendido: otros equipos de tu red
-    (ej. tu celular) pueden entrar por la IP de esta PC, y Windows puede preguntar por el firewall.
-    Adminer sigue siendo solo para esta PC.
-  </p>
-
-  <h2>Carpeta de proyectos</h2>
-  <div class="row">
-    <input class="path" type="text" bind:value={www} placeholder={defaultWww} />
-    <button on:click={chooseFolder}>Elegir…</button>
-    {#if www}
-      <button on:click={() => (www = '')} title={defaultWww}>Usar la predeterminada</button>
+    {#if mysqlChanged}
+      <p class="body warn">Si cambias el puerto de MySQL, actualiza <code>DB_PORT</code> en el <code>.env</code> de tus proyectos.</p>
     {/if}
   </div>
-  <p class="muted small">Cada carpeta dentro es un sitio <code>&lt;carpeta&gt;.test</code>.</p>
 
-  <p class="row">
+  <div class="card">
+    <div class="card-title">Red</div>
+    <div class="body">
+      <label class="check">
+        <input type="checkbox" bind:checked={lan} />
+        Accesible desde la red local
+      </label>
+      <p class="muted small">
+        Apagado (recomendado): los sitios solo responden en esta PC. Encendido: otros equipos de tu red
+        (ej. tu celular) pueden entrar por la IP de esta PC, y Windows puede preguntar por el firewall.
+        Adminer sigue siendo solo para esta PC.
+      </p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Carpeta de proyectos</div>
+    <div class="body">
+      <div class="row">
+        <input class="path" type="text" bind:value={www} placeholder={defaultWww} />
+        <button on:click={chooseFolder}>Elegir…</button>
+        {#if www}
+          <button class="ghost" on:click={() => (www = '')} title={defaultWww}>Usar la predeterminada</button>
+        {/if}
+      </div>
+      <p class="muted small">Cada carpeta dentro es un sitio <code>&lt;carpeta&gt;.test</code>.</p>
+    </div>
+  </div>
+
+  <div class="save row">
     <button class="primary" on:click={save} disabled={saving}>
-      {saving ? 'Guardando…' : 'Guardar'}
+      {saving ? 'Guardando…' : 'Guardar cambios'}
     </button>
     {#if msg}<span class={msgIsError ? 'error' : 'ok'}>{msg}</span>{/if}
-  </p>
+  </div>
 
-  <h2>HTTPS</h2>
-  <p class="muted small">
-    Quita de Windows el certificado de Kiltro que se instaló al activar HTTPS. Los navegadores dejan
-    de confiar en <code>https://*.test</code>. Windows pide confirmar.
-  </p>
-  <p class="row">
-    {#if !confirmUninstall}
-      <button on:click={() => (confirmUninstall = true)} disabled={uninstalling}>Desinstalar certificado de Kiltro</button>
-    {:else}
-      <span class="warn">¿Seguro?</span>
-      <button class="danger" on:click={uninstallCA} disabled={uninstalling}>
-        {uninstalling ? 'Esperando confirmación…' : 'Sí, desinstalar'}
-      </button>
-      <button on:click={() => (confirmUninstall = false)} disabled={uninstalling}>Cancelar</button>
-    {/if}
-  </p>
-  {#if caMsg}<p class={caMsgIsError ? 'error' : 'ok'}>{caMsg}</p>{/if}
+  <div class="card">
+    <div class="card-title">HTTPS</div>
+    <div class="body">
+      <p class="muted small first">
+        Quita de Windows el certificado de Kiltro que se instaló al activar HTTPS. Los navegadores dejan
+        de confiar en <code>https://*.test</code>. Windows pide confirmar.
+      </p>
+      <div class="row">
+        {#if !confirmUninstall}
+          <button on:click={() => (confirmUninstall = true)} disabled={uninstalling}>Desinstalar certificado de Kiltro</button>
+        {:else}
+          <span class="warn">¿Seguro?</span>
+          <button class="danger" on:click={uninstallCA} disabled={uninstalling}>
+            {uninstalling ? 'Esperando confirmación…' : 'Sí, desinstalar'}
+          </button>
+          <button class="ghost" on:click={() => (confirmUninstall = false)} disabled={uninstalling}>Cancelar</button>
+        {/if}
+      </div>
+      {#if caMsg}<p class={caMsgIsError ? 'error' : 'ok'}>{caMsg}</p>{/if}
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Acerca de</div>
+    <div class="body">
+      <p class="small first">Carpeta de la app: <code class="sel">{root}</code></p>
+      <p class="muted small">Ahí están <code>bin\</code>, <code>etc\</code>, <code>data\</code>, <code>logs\</code> y <code>config.json</code>.</p>
+    </div>
+  </div>
 </section>
 
 <style>
-  section {
-    max-width: 760px;
+  .settings {
+    max-width: 780px;
   }
-  h2 {
-    margin-top: 1.8rem;
-    font-size: 1.1rem;
+  .body {
+    padding: 0.2rem 1rem 0.8rem;
   }
   .grid {
     display: grid;
@@ -197,11 +222,8 @@
   input[type='number'] {
     width: 7rem;
   }
-  input[type='number'],
-  input[type='text'] {
-    padding: 0.3rem 0.5rem;
-    border-radius: 3px;
-    border: 1px solid #555;
+  .hint {
+    margin-left: 0.5rem;
   }
   .path {
     flex: 1;
@@ -212,46 +234,23 @@
     align-items: center;
     gap: 0.6rem;
   }
+  .save {
+    margin: 0 0 1rem;
+  }
   .check {
     display: flex;
     align-items: center;
     gap: 0.5rem;
   }
-  .muted {
-    opacity: 0.6;
-    margin-left: 0.5rem;
-  }
   .small {
-    font-size: 0.9em;
-    margin-left: 0;
+    font-size: 0.92em;
+    margin: 0.5rem 0 0;
   }
-  .warn {
-    color: #ffd54f;
+  .first {
+    margin-top: 0;
+    margin-bottom: 0.6rem;
   }
-  .ok {
-    color: #81c784;
-  }
-  .error {
-    color: #ff8a80;
-    white-space: pre-wrap;
-  }
-  button {
-    padding: 0.3rem 0.8rem;
-    border: none;
-    border-radius: 3px;
-    cursor: pointer;
-  }
-  button:disabled {
-    cursor: wait;
-    opacity: 0.6;
-  }
-  .primary {
-    background: #2e7d32;
-    color: white;
-    min-width: 100px;
-  }
-  .danger {
-    background: #c62828;
-    color: white;
+  .sel {
+    user-select: all;
   }
 </style>

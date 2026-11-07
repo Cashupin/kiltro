@@ -2,7 +2,7 @@
   // Sintaxis clásica de Svelte (sin runes), ver CLAUDE.md.
   import { onMount, onDestroy } from 'svelte'
   import {
-    GetAppRoot, GetServices, StartService, StopService, GetSites, ReloadSites,
+    GetServices, StartService, StopService, StartAll, StopAll, GetSites, ReloadSites,
     GetHostsStatus, SyncHosts, OpenAdminer, GetPHPVersions, SetPHPVersion,
     OpenSiteFolder, OpenSiteTerminal, CreateSite,
     GetSSLStatus, EnableSSL, DisableSSL,
@@ -12,7 +12,6 @@
   import Logs from './Logs.svelte'
   import type { services, vhosts } from '../wailsjs/go/models'
 
-  let root: string = '…'
   let list: services.Info[] = []
   let errorMsg: string = ''         // error general (ej. puerto ocupado)
   let busy: Record<string, boolean> = {} // servicio con una acción en curso
@@ -223,6 +222,38 @@
     }
   }
 
+  // "Iniciar todo" / "Detener todo" (barra superior)
+  let allBusy = false
+  async function startAll() {
+    errorMsg = ''
+    allBusy = true
+    try {
+      await StartAll()
+    } catch (e) {
+      errorMsg = String(e)
+    } finally {
+      allBusy = false
+      await refresh()
+    }
+  }
+  async function stopAll() {
+    errorMsg = ''
+    allBusy = true
+    try {
+      await StopAll()
+    } catch (e) {
+      errorMsg = String(e)
+    } finally {
+      allBusy = false
+      await refresh()
+    }
+  }
+  $: runningCount = list.filter((s) => s.status === 'running').length
+  const isOn = (s: services.Info) => s.status === 'running' || s.status === 'starting'
+
+  // Vista previa del dominio del sitio nuevo: "Mi Tienda" -> "mi-tienda.test"
+  $: newSiteDomain = newName.trim() ? newName.trim().toLowerCase().replace(/[ _]/g, '-') + '.test' : ''
+
   async function toggle(s: services.Info) {
     errorMsg = ''
     busy = { ...busy, [s.name]: true }
@@ -259,7 +290,6 @@
   }
 
   onMount(async () => {
-    root = await GetAppRoot()
     offs.push(EventsOn('services:changed', refresh))
     offs.push(EventsOn('hosts:changed', refreshHosts))
     // Errores de acciones hechas desde el menú de la bandeja.
@@ -274,27 +304,50 @@
   onDestroy(() => offs.forEach((off) => off()))
 </script>
 
-<main>
-  <p class="root">Kiltro — raíz: <code>{root}</code></p>
+<div class="layout">
+  <!-- Barra superior: nombre, resumen y acciones globales -->
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">K</span>
+      <span class="title">Kiltro</span>
+      {#if list.length > 0}
+        <span class="summary">
+          <span class="dot {runningCount === list.length ? 'running' : runningCount > 0 ? 'warn' : ''}"></span>
+          {runningCount} de {list.length} servicios corriendo
+        </span>
+      {/if}
+    </div>
+    <div class="top-actions">
+      <button class="primary" on:click={startAll} disabled={allBusy || runningCount === list.length}>▶ Iniciar todo</button>
+      <button on:click={stopAll} disabled={allBusy || runningCount === 0}>■ Detener todo</button>
+    </div>
+  </header>
 
-  <nav>
+  <nav class="tabs">
     <button class:active={tab === 'services'} on:click={() => showTab('services')}>Servicios</button>
     <button class:active={tab === 'logs'} on:click={() => showTab('logs')}>Logs</button>
     <button class:active={tab === 'settings'} on:click={() => showTab('settings')}>Configuración</button>
   </nav>
 
-  {#if tab === 'settings'}
-    <Settings />
-  {:else if tab === 'logs'}
-    <Logs />
-  {:else}
+  <main>
+    {#if tab === 'settings'}
+      <Settings />
+    {:else if tab === 'logs'}
+      <Logs />
+    {:else}
 
-  <table>
-    <tbody>
+    {#if errorMsg}
+      <div class="alert">{errorMsg}<button class="ghost small" on:click={() => (errorMsg = '')}>✕</button></div>
+    {/if}
+
+    <!-- Servicios -->
+    <section class="card">
+      <div class="card-title">Servicios</div>
       {#each list as s (s.name)}
-        <tr>
-          <td class="name">
-            {names[s.name] ?? s.name}
+        <div class="svc">
+          <span class="dot {s.status}" title={labels[s.status] ?? s.status}></span>
+          <div class="svc-name">
+            <span class="name">{names[s.name] ?? s.name}</span>
             {#if s.name === 'php' && phpVersions.length > 0}
               <!-- Cambiar la versión reinicia PHP si está corriendo -->
               <select bind:value={phpChoice} on:change={changePhp}
@@ -305,276 +358,361 @@
                 {/each}
               </select>
             {/if}
-          </td>
-          <td class="ports">{portsLabel(s.ports)}</td>
-          <td>
-            <span class="status {s.status}">{labels[s.status] ?? s.status}</span>
-            {#if s.detail}<span class="detail">{s.detail}</span>{/if}
-          </td>
-          <td>
-            <button on:click={() => toggle(s)} disabled={busy[s.name]}>
-              {s.status === 'running' || s.status === 'starting' ? 'Detener' : 'Iniciar'}
-            </button>
+          </div>
+          <code class="ports">{portsLabel(s.ports)}</code>
+          <span class="state {s.status}">
+            {labels[s.status] ?? s.status}{#if s.detail}<span class="muted"> · {s.detail}</span>{/if}
+          </span>
+          <div class="svc-actions">
             {#if s.name === 'mysql' && hasAdminer}
-              <button on:click={openAdminer} disabled={openingAdminer}
+              <button class="ghost" on:click={openAdminer} disabled={openingAdminer}
                 title="Abre Adminer en el navegador (inicia PHP, MySQL y Nginx si hace falta)">
                 {openingAdminer ? 'Iniciando…' : 'Gestor BD'}
               </button>
             {/if}
-          </td>
-        </tr>
+            <button class={isOn(s) ? '' : 'outline'} on:click={() => toggle(s)} disabled={busy[s.name] || allBusy}>
+              {isOn(s) ? '■ Detener' : '▶ Iniciar'}
+            </button>
+          </div>
+        </div>
         {#if s.error}
-          <tr><td colspan="4" class="error">{s.error}</td></tr>
+          <div class="svc-error error">{s.error}</div>
         {/if}
       {/each}
-    </tbody>
-  </table>
+    </section>
 
-  {#if errorMsg}
-    <p class="error">{errorMsg}</p>
-  {/if}
+    <!-- Sitios -->
+    <section class="card">
+      <div class="card-title">
+        Sitios <span class="count">{projects.length}</span>
+        <span class="spacer"></span>
+        <button class="ghost small" on:click={reloadSites} disabled={reloading} title="Volver a leer la carpeta de proyectos">
+          {reloading ? 'Recargando…' : '↻ Recargar'}
+        </button>
+        <button class="small primary" on:click={() => { creating = !creating; createMsg = '' }}>＋ Nuevo sitio</button>
+      </div>
 
-  <h2>
-    Sitios
-    <button on:click={reloadSites} disabled={reloading}>
-      {reloading ? 'Recargando…' : 'Recargar sitios'}
-    </button>
-    <button on:click={() => { creating = !creating; createMsg = '' }}>Nuevo sitio</button>
-  </h2>
+      {#if creating}
+        <form class="newsite" on:submit|preventDefault={createSite}>
+          <input bind:value={newName} placeholder="nombre (ej. mi-tienda)" />
+          <span class="muted">{newSiteDomain}</span>
+          <span class="spacer"></span>
+          <button type="submit" class="primary small" disabled={!newName.trim()}>Crear</button>
+          <button type="button" class="ghost small" on:click={() => (creating = false)}>Cancelar</button>
+        </form>
+      {/if}
+      {#if createMsg}
+        <p class="msg {createIsError ? 'error' : 'ok'}">{createMsg}</p>
+      {/if}
 
-  {#if creating}
-    <form class="newsite" on:submit|preventDefault={createSite}>
-      <input bind:value={newName} placeholder="nombre (ej. mi-tienda)" />
-      <span class="muted">{newName.trim() ? newName.trim().toLowerCase().replace(/[ _]/g, '-') + '.test' : ''}</span>
-      <button type="submit" disabled={!newName.trim()}>Crear</button>
-      <button type="button" on:click={() => (creating = false)}>Cancelar</button>
-    </form>
-  {/if}
-  {#if createMsg}
-    <p class={createIsError ? 'error' : 'ok'}>{createMsg}</p>
-  {/if}
-
-  {#if projects.length === 0}
-    <p class="muted">No hay proyectos. Pulsa "Nuevo sitio" o crea una carpeta dentro de <code>www\</code> y pulsa "Recargar sitios".</p>
-  {:else}
-    <table>
-      <tbody>
+      {#if projects.length === 0}
+        <p class="msg muted">No hay proyectos. Pulsa "Nuevo sitio" o crea una carpeta dentro de la carpeta de proyectos y pulsa "Recargar".</p>
+      {:else}
         {#each projects as site (site.name)}
-          <tr>
-            <td class="name">
-              <a href={scheme + site.domain} on:click|preventDefault={() => openSite(site.domain)}>{site.domain}</a>
-            </td>
-            <td>
+          <div class="site">
+            <div class="site-main">
+              <a href={scheme + site.domain} on:click|preventDefault={() => openSite(site.domain)}>{scheme}{site.domain}</a>
               {#if site.laravel}<span class="badge">Laravel</span>{/if}
-            </td>
-            <td class="muted"><code>{site.root}</code></td>
-            <td class="actions">
-              <button on:click={() => openSite(site.domain)}>Abrir</button>
-              <button on:click={() => siteAction(() => OpenSiteFolder(site.name))}>Carpeta</button>
-              <button on:click={() => siteAction(() => OpenSiteTerminal(site.name))}>Terminal</button>
-            </td>
-          </tr>
+              <code class="path" title={site.root}>{site.root}</code>
+            </div>
+            <div class="site-actions">
+              <button class="ghost small" on:click={() => openSite(site.domain)}>Abrir</button>
+              <button class="ghost small" on:click={() => siteAction(() => OpenSiteFolder(site.name))}>Carpeta</button>
+              <button class="ghost small" on:click={() => siteAction(() => OpenSiteTerminal(site.name))}>Terminal</button>
+            </div>
+          </div>
         {/each}
-      </tbody>
-    </table>
-  {/if}
-
-  {#each skipped as sk}
-    <p class="warn">Ignorada <code>www\{sk.folder}</code>: {sk.reason}</p>
-  {/each}
-
-  {#if sitesMsg}
-    <p class={sitesMsg === 'Sitios recargados' ? 'muted' : 'error'}>{sitesMsg}</p>
-  {/if}
-
-  {#if hostsStatus}
-    <p class="hosts">
-      Archivo hosts:
-      {#if hostsStatus.upToDate}
-        <span class="ok">al día</span>
-      {:else}
-        <span class="warn">desactualizado</span>
-        <button on:click={syncHosts} disabled={syncing}>
-          {syncing ? 'Esperando permiso…' : 'Actualizar hosts'}
-        </button>
       {/if}
-    </p>
-    {#if hostsStatus.error}
-      <p class="error">{hostsStatus.error}</p>
-    {/if}
-  {/if}
 
-  {#if ssl}
-    <p class="hosts">
-      HTTPS:
-      {#if ssl.enabled}
-        <span class="ok">activado</span>
-      {:else}
-        <span class="muted">desactivado</span>
+      {#each skipped as sk}
+        <p class="msg warn">Ignorada <code>{sk.folder}</code>: {sk.reason}</p>
+      {/each}
+      {#if sitesMsg}
+        <p class="msg {sitesMsg === 'Sitios recargados' ? 'muted' : 'error'}">{sitesMsg}</p>
       {/if}
-      {#if ssl.available}
-        <button on:click={toggleSsl} disabled={sslBusy}
-          title={ssl.enabled ? 'Volver a solo http://' : 'Windows pedirá confirmar que confías en el certificado de Kiltro'}>
-          {#if sslBusy}
-            {ssl.enabled ? 'Desactivando…' : 'Esperando confirmación…'}
-          {:else}
-            {ssl.enabled ? 'Desactivar HTTPS' : 'Activar HTTPS'}
-          {/if}
-        </button>
+    </section>
+
+    <!-- Estado: archivo hosts y HTTPS -->
+    <section class="status-row">
+      {#if hostsStatus}
+        <div class="card status">
+          <div class="status-head">
+            <span class="dot {hostsStatus.upToDate ? 'ok' : 'warn'}"></span>
+            <span class="label">Archivo hosts</span>
+            <span class={hostsStatus.upToDate ? 'ok' : 'warn'}>{hostsStatus.upToDate ? 'al día' : 'desactualizado'}</span>
+            <span class="spacer"></span>
+            {#if !hostsStatus.upToDate}
+              <button class="small" on:click={syncHosts} disabled={syncing}>
+                {syncing ? 'Esperando permiso…' : 'Actualizar'}
+              </button>
+            {/if}
+          </div>
+          {#if hostsStatus.error}<p class="msg error">{hostsStatus.error}</p>{/if}
+        </div>
       {/if}
-    </p>
-    {#if ssl.error}
-      <p class="muted">{ssl.error}</p>
+
+      {#if ssl}
+        <div class="card status">
+          <div class="status-head">
+            <span class="dot {ssl.enabled ? 'ok' : ''}"></span>
+            <span class="label">HTTPS</span>
+            <span class={ssl.enabled ? 'ok' : 'muted'}>{ssl.enabled ? 'activado' : 'desactivado'}</span>
+            <span class="spacer"></span>
+            {#if ssl.available}
+              <button class="small" on:click={toggleSsl} disabled={sslBusy}
+                title={ssl.enabled ? 'Volver a solo http://' : 'Windows pedirá confirmar que confías en el certificado de Kiltro'}>
+                {#if sslBusy}
+                  {ssl.enabled ? 'Desactivando…' : 'Esperando confirmación…'}
+                {:else}
+                  {ssl.enabled ? 'Desactivar' : 'Activar'}
+                {/if}
+              </button>
+            {/if}
+          </div>
+          {#if ssl.error}<p class="msg muted">{ssl.error}</p>{/if}
+          {#if sslMsg}<p class="msg error">{sslMsg}</p>{/if}
+        </div>
+      {/if}
+    </section>
     {/if}
-    {#if sslMsg}
-      <p class="error">{sslMsg}</p>
-    {/if}
-  {/if}
-  {/if}
-</main>
+  </main>
+</div>
 
 <style>
-  nav {
+  .layout {
     display: flex;
-    gap: 0.3rem;
-    border-bottom: 1px solid #3a4a60;
-    margin: 1rem 0;
-  }
-  nav button {
-    background: transparent;
-    color: inherit;
-    border-radius: 3px 3px 0 0;
-    opacity: 0.7;
-  }
-  nav button.active {
-    background: #2c3e56;
-    opacity: 1;
-    font-weight: bold;
+    flex-direction: column;
+    height: 100vh;
   }
 
-  main {
-    padding: 2rem;
-    text-align: left;
-  }
-
-  .root code {
-    user-select: all;
-  }
-
-  table {
-    border-collapse: collapse;
-    margin-top: 1rem;
-  }
-
-  td {
-    padding: 0.4rem 0.8rem;
-  }
-
-  .name {
-    font-weight: bold;
-  }
-
-  .name select {
-    margin-left: 0.6rem;
-    font-weight: normal;
-    padding: 0.2rem 0.3rem;
-    border-radius: 3px;
-  }
-
-  .ports {
-    opacity: 0.6;
-  }
-
-  .status {
-    padding: 0.1rem 0.5rem;
-    border-radius: 3px;
-    background: #555;
-  }
-  .status.running {
-    background: #2e7d32;
-  }
-  .status.starting,
-  .status.stopping {
-    background: #b28704;
-  }
-  .status.error {
-    background: #c62828;
-  }
-
-  h2 {
-    margin-top: 2rem;
-    font-size: 1.1rem;
+  /* --- Barra superior --- */
+  .topbar {
     display: flex;
     align-items: center;
-    gap: 1rem;
+    justify-content: space-between;
+    padding: 0.8rem 1.5rem;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
   }
-
-  .muted {
-    opacity: 0.6;
-  }
-
-  .warn {
-    color: #ffd54f;
-  }
-
-  .ok {
-    color: #81c784;
-  }
-
-  .hosts {
-    margin-top: 1.5rem;
+  .brand {
     display: flex;
     align-items: center;
     gap: 0.6rem;
   }
-
-  a {
-    color: inherit;
+  .logo {
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 7px;
+    background: var(--accent);
+    color: #fff;
+    font-weight: 700;
+  }
+  .title {
+    font-size: 1.15rem;
+    font-weight: 600;
+  }
+  .summary {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-left: 0.8rem;
+    color: var(--muted);
+    font-size: 0.92em;
+  }
+  .top-actions {
+    display: flex;
+    gap: 0.5rem;
   }
 
-  .badge {
-    padding: 0.1rem 0.5rem;
-    border-radius: 3px;
-    background: #f4511e;
+  /* --- Pestañas --- */
+  .tabs {
+    display: flex;
+    gap: 0.2rem;
+    padding: 0 1.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .tabs button {
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    border-radius: 0;
+    padding: 0.6rem 0.9rem;
+    color: var(--muted);
+  }
+  .tabs button:hover:not(:disabled) {
+    background: transparent;
+    color: var(--text);
+  }
+  .tabs button.active {
+    color: var(--text);
+    border-bottom-color: var(--accent);
+    font-weight: 600;
+  }
+
+  main {
+    flex: 1;
+    overflow: auto;
+    padding: 1.2rem 1.5rem;
+  }
+
+  .alert {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.6rem 0.9rem;
+    margin-bottom: 1rem;
+    border: 1px solid #7f1d1d;
+    background: #3b1d1d;
+    color: #fecaca;
+    border-radius: var(--radius);
+    white-space: pre-wrap;
+  }
+
+  /* --- Servicios --- */
+  .svc {
+    display: grid;
+    /* Columnas fijas: así todas las filas quedan alineadas aunque una tenga más botones (MySQL). */
+    grid-template-columns: 14px minmax(190px, 1.3fr) 110px 1fr 230px;
+    align-items: center;
+    gap: 0.8rem;
+    padding: 0.55rem 1rem;
+    border-top: 1px solid var(--border);
+  }
+  .svc:hover {
+    background: rgba(255, 255, 255, 0.02);
+  }
+  .svc-name {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+  .name {
+    font-weight: 600;
+  }
+  .svc-name select {
+    padding: 0.15rem 0.35rem;
+    font-size: 0.9em;
+  }
+  .ports {
+    color: var(--muted);
+  }
+  .state.running {
+    color: var(--ok);
+  }
+  .state.starting,
+  .state.stopping {
+    color: var(--warn);
+  }
+  .state.error {
+    color: #fca5a5;
+  }
+  .state.stopped {
+    color: var(--muted);
+  }
+  .svc-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.4rem;
+  }
+  .svc-actions button {
+    min-width: 96px;
+  }
+  .svc-error {
+    padding: 0 1rem 0.6rem 2.9rem;
+    font-size: 0.92em;
+  }
+
+  /* --- Sitios --- */
+  .count {
+    font-weight: normal;
+    color: var(--muted);
+    background: var(--surface-2);
+    border-radius: 999px;
+    padding: 0 0.5rem;
     font-size: 0.85em;
-  }
-  .actions button {
-    min-width: 0;
-    margin-left: 0.3rem;
   }
   .newsite {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    margin-top: 0.8rem;
+    padding: 0.5rem 1rem 0.7rem;
   }
   .newsite input {
-    padding: 0.3rem 0.5rem;
-    border-radius: 3px;
-    border: 1px solid #555;
     width: 16rem;
   }
-
-  .detail {
-    margin-left: 0.5rem;
-    opacity: 0.7;
-    font-size: 0.9em;
+  .newsite .spacer {
+    flex: 1;
+  }
+  .site {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.5rem 1rem;
+    border-top: 1px solid var(--border);
+  }
+  .site:hover {
+    background: rgba(255, 255, 255, 0.02);
+  }
+  .site-main {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    min-width: 0;
+  }
+  .site-main a {
+    font-weight: 600;
+  }
+  .path {
+    color: var(--muted);
+    font-size: 0.85em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .site-actions {
+    display: flex;
+    gap: 0.2rem;
+    flex: none;
+  }
+  .badge {
+    padding: 0.05rem 0.45rem;
+    border-radius: 4px;
+    background: rgba(244, 81, 30, 0.18);
+    color: #fb923c;
+    font-size: 0.8em;
+    font-weight: 600;
+  }
+  .msg {
+    margin: 0.3rem 1rem 0.6rem;
   }
 
-  button {
-    min-width: 80px;
-    padding: 0.3rem 0.8rem;
-    border: none;
-    border-radius: 3px;
-    cursor: pointer;
+  /* --- Estado (hosts / HTTPS) --- */
+  .status-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
   }
-  button:disabled {
-    cursor: wait;
-    opacity: 0.6;
+  .status {
+    padding: 0.6rem 1rem;
+    margin-bottom: 0;
   }
-
-  .error {
-    color: #ff8a80;
-    white-space: pre-wrap;
+  .status-head {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .status-head .label {
+    font-weight: 600;
+  }
+  .status-head .spacer {
+    flex: 1;
+  }
+  .status .msg {
+    margin: 0.4rem 0 0;
+    font-size: 0.92em;
   }
 </style>

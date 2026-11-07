@@ -145,7 +145,7 @@ Trabajar **una etapa a la vez**. No adelantar trabajo de etapas siguientes.
       (en ese orden) y recién ahí abrir Adminer.
     - Por sitio: botones "Abrir", "Carpeta" (Explorador) y "Terminal" (PowerShell en la carpeta).
     - "Nuevo sitio": crea una carpeta vacía en `www/` (con nombre válido) y recarga los sitios.
-  - [ ] 9b: Aspecto de la ventana (CSS simple, sin frameworks).
+  - [x] 9b: Aspecto de la ventana (CSS simple, sin frameworks).
     - Estado con punto de color, botones ▶/■, "Iniciar todo" / "Detener todo" arriba.
     - Barra superior con el nombre; la ruta raíz pasa a Configuración.
     - Hosts y HTTPS agrupados en un bloque; paleta con acento azul (como el tema de Adminer).
@@ -180,7 +180,7 @@ Trabajar **una etapa a la vez**. No adelantar trabajo de etapas siguientes.
 
 ## Estado actual
 
-**Etapas 1 a 8 completas y 9a** (2026-11-06). Siguiente: 9b (aspecto de la ventana).
+**Etapas 1 a 8 completas, 9a y 9b** (2026-11-06). Siguiente: 9c (ícono propio).
 
 Notas para las próximas etapas:
 - La plantilla svelte-ts de Wails v2.17.1 trae Svelte 5: se usa `mount()` en `main.ts`, pero
@@ -242,3 +242,7 @@ Notas para las próximas etapas:
   "Nuevo sitio" valida con `vhosts.CheckNewName` (mismas reglas que `Scan`) y crea la carpeta
   vacía (para que `composer create-project` funcione ahí). "Gestor BD" (`App.OpenAdminer`)
   inicia PHP/MySQL/Nginx y hace `SyncHosts` antes de abrir el navegador.
+- UI (9b): colores y estilos comunes en `frontend/src/style.css` (variables en `:root`; botones
+  `.primary`, `.outline`, `.ghost`, `.danger`, `.small`; `.card`, `.dot`). Los componentes NO
+  deben redefinir `button`/`input` en su `<style>` (los estilos con scope de Svelte le ganan a los
+  globales). `BackgroundColour` de `main.go` = `--bg`. Fuente: Segoe UI (la de Windows).

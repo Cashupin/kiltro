@@ -1,26 +1,208 @@
+/*
+ * Estilos comunes de Kiltro (todas las pestañas). CSS simple, sin frameworks.
+ * Los colores están como variables: para cambiar la paleta, se cambia aquí.
+ * El acento azul es el mismo del tema de Kiltro para Adminer.
+ */
+:root {
+    --bg: #0f1623;          /* fondo de la ventana */
+    --surface: #172131;     /* tarjetas */
+    --surface-2: #1e2a3d;   /* hover, campos */
+    --border: #2a3a52;
+    --text: #e5e9f0;
+    --muted: #8b97a8;
+    --accent: #3b82f6;
+    --accent-hover: #60a5fa;
+    --ok: #22c55e;
+    --warn: #f59e0b;
+    --danger: #ef4444;
+    --radius: 8px;
+    --mono: Consolas, "Cascadia Mono", monospace;
+}
+
 html {
-    background-color: rgba(27, 38, 54, 1);
-    text-align: center;
-    color: white;
+    background-color: var(--bg);
+    color: var(--text);
 }
 
 body {
     margin: 0;
-    color: white;
-    font-family: "Nunito", -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto",
-    "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
-    sans-serif;
-}
-
-@font-face {
-    font-family: "Nunito";
-    font-style: normal;
-    font-weight: 400;
-    src: local(""),
-    url("assets/fonts/nunito-v16-latin-regular.woff2") format("woff2");
+    color: var(--text);
+    /* La fuente de Windows: se ve nítida y no hay que cargar nada. */
+    font: 14px/1.45 "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
 }
 
 #app {
     height: 100vh;
-    text-align: center;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+code {
+    font-family: var(--mono);
+    font-size: 0.92em;
+}
+
+a {
+    color: var(--accent-hover);
+    text-decoration: none;
+}
+a:hover {
+    text-decoration: underline;
+}
+
+/* --- Botones ---
+ * Por defecto: secundario (gris). Variantes: .primary (azul), .danger (rojo),
+ * .ghost (sin fondo, para acciones de una fila), .small. */
+button {
+    font: inherit;
+    color: var(--text);
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.32rem 0.85rem;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.12s, border-color 0.12s;
+}
+button:hover:not(:disabled) {
+    background: #26354c;
+    border-color: #3a4d6b;
+}
+button:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+button.primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+    font-weight: 600;
+}
+button.primary:hover:not(:disabled) {
+    background: var(--accent-hover);
+    border-color: var(--accent-hover);
+}
+button.danger {
+    background: var(--danger);
+    border-color: var(--danger);
+    color: #fff;
+}
+button.ghost {
+    background: transparent;
+    border-color: transparent;
+    color: var(--muted);
+}
+button.ghost:hover:not(:disabled) {
+    background: var(--surface-2);
+    border-color: var(--border);
+    color: var(--text);
+}
+button.small {
+    padding: 0.18rem 0.6rem;
+    font-size: 0.92em;
+}
+
+/* --- Campos --- */
+input[type="text"],
+input[type="number"],
+input:not([type]),
+select {
+    font: inherit;
+    color: var(--text);
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.3rem 0.5rem;
+}
+input:focus,
+select:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+}
+input[type="checkbox"] {
+    accent-color: var(--accent);
+}
+
+/* --- Tarjetas y textos --- */
+.card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0.4rem 0;
+    margin-bottom: 1rem;
+}
+.card-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    font-weight: 600;
+}
+.card-title .spacer {
+    flex: 1;
+}
+
+.muted {
+    color: var(--muted);
+}
+.ok {
+    color: var(--ok);
+}
+.warn {
+    color: var(--warn);
+}
+.error {
+    color: #fca5a5;
+    white-space: pre-wrap;
+}
+
+/* Punto de estado: gris (detenido), verde (corriendo), amarillo (cambiando), rojo (error). */
+.dot {
+    display: inline-block;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: #4b5563;
+    flex: none;
+}
+.dot.running,
+.dot.ok {
+    background: var(--ok);
+    box-shadow: 0 0 6px rgba(34, 197, 94, 0.6);
+}
+.dot.starting,
+.dot.stopping,
+.dot.warn {
+    background: var(--warn);
+}
+.dot.error {
+    background: var(--danger);
+}
+
+/* Barras de scroll oscuras (WebView2 = Chromium). */
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+::-webkit-scrollbar-thumb {
+    background: #2a3a52;
+    border-radius: 5px;
+}
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+/* Botón con borde azul: acción principal de una fila (ej. "▶ Iniciar"), menos
+   pesado que .primary cuando se repite varias veces. */
+button.outline {
+    background: transparent;
+    border-color: rgba(59, 130, 246, 0.6);
+    color: var(--accent-hover);
+}
+button.outline:hover:not(:disabled) {
+    background: rgba(59, 130, 246, 0.12);
+    border-color: var(--accent);
 }
