@@ -149,7 +149,7 @@ Trabajar **una etapa a la vez**. No adelantar trabajo de etapas siguientes.
     - Estado con punto de color, botones ▶/■, "Iniciar todo" / "Detener todo" arriba.
     - Barra superior con el nombre; la ruta raíz pasa a Configuración.
     - Hosts y HTTPS agrupados en un bloque; paleta con acento azul (como el tema de Adminer).
-  - [ ] 9c: Ícono propio de Kiltro (SVG → `.ico` con varios tamaños; exe y bandeja; hoy es la
+  - [x] 9c: Ícono propio de Kiltro (SVG → `.ico` con varios tamaños; exe y bandeja; hoy es la
         "W" de la plantilla de Wails).
   - [ ] 9d: `php` y `composer` en la terminal (opcional, con un botón en Configuración).
     - Composer 2.10.2 copiado de Laragon a `bin/composer/composer.phar`.
@@ -180,7 +180,7 @@ Trabajar **una etapa a la vez**. No adelantar trabajo de etapas siguientes.
 
 ## Estado actual
 
-**Etapas 1 a 8 completas, 9a y 9b** (2026-11-06). Siguiente: 9c (ícono propio).
+**Etapas 1 a 8 completas, 9a, 9b y 9c** (2026-11-06). Siguiente: 9d (`php` y `composer` en la terminal).
 
 Notas para las próximas etapas:
 - La plantilla svelte-ts de Wails v2.17.1 trae Svelte 5: se usa `mount()` en `main.ts`, pero
@@ -215,7 +215,7 @@ Notas para las próximas etapas:
   la X esconde; "Salir" llama `runtime.Quit` → `shutdown` (apaga servicios y quita el ícono).
   `SingleInstanceLock` evita dos Kiltro a la vez. El menú se actualiza con el mismo `Notify` de
   los servicios, que llama a `List()`: **nunca llamar `Notify()` con el mutex del servicio tomado**.
-  Ícono: por ahora `build/windows/icon.ico` de la plantilla (Etapa 9: ícono propio).
+  Ícono: `build/windows/icon.ico` (propio desde la 9c).
 - HTTPS (`internal/certs`): mkcert 1.4.4 compilado con `go install`. `CAROOT=etc/ssl/ca`,
   `TRUST_STORES=system`; certificados por dominio en `etc/ssl/certs/` (más `localhost` para el
   default server del 443). `"ssl": true` en `config.json` activa `listen 443 ssl` y agrega el 443 a
@@ -246,3 +246,7 @@ Notas para las próximas etapas:
   `.primary`, `.outline`, `.ghost`, `.danger`, `.small`; `.card`, `.dot`). Los componentes NO
   deben redefinir `button`/`input` en su `<style>` (los estilos con scope de Svelte le ganan a los
   globales). `BackgroundColour` de `main.go` = `--bg`. Fuente: Segoe UI (la de Windows).
+- Ícono (9c): fuente `build/kiltro.svg` → `build/appicon.png`, `build/windows/icon.ico` (9 tamaños,
+  armado con `go run ./tools/icopack`) y `frontend/src/assets/images/kiltro.svg` (logo de la UI).
+  NO borrar `icon.ico`: `main.go` lo embebe y sin él no compila (wails no alcanza a regenerarlo).
+  Pasos para cambiarlo en `build/README.md`.

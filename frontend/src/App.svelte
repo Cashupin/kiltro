@@ -10,6 +10,7 @@
   import { EventsOn, BrowserOpenURL } from '../wailsjs/runtime/runtime.js'
   import Settings from './Settings.svelte'
   import Logs from './Logs.svelte'
+  import logo from './assets/images/kiltro.svg' // mismo dibujo que el ícono del exe (build/kiltro.svg)
   import type { services, vhosts } from '../wailsjs/go/models'
 
   let list: services.Info[] = []
@@ -308,7 +309,7 @@
   <!-- Barra superior: nombre, resumen y acciones globales -->
   <header class="topbar">
     <div class="brand">
-      <span class="logo">K</span>
+      <img class="logo" src={logo} alt="" />
       <span class="title">Kiltro</span>
       {#if list.length > 0}
         <span class="summary">
@@ -500,14 +501,8 @@
     gap: 0.6rem;
   }
   .logo {
-    display: grid;
-    place-items: center;
-    width: 28px;
-    height: 28px;
-    border-radius: 7px;
-    background: var(--accent);
-    color: #fff;
-    font-weight: 700;
+    width: 30px;
+    height: 30px;
   }
   .title {
     font-size: 1.15rem;

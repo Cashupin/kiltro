@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <!-- Ícono de Kiltro: un quiltro (perro mestizo) con una oreja parada y otra
+       caída, y una mancha en un ojo. Fuente del ícono: de aquí salen
+       build/appicon.png (y de ahí build/windows/icon.ico) y el logo de la UI. -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#4f8ff7"/>
+      <stop offset="1" stop-color="#2563eb"/>
+    </linearGradient>
+  </defs>
+  <rect width="256" height="256" rx="58" fill="url(#bg)"/>
+  <!-- oreja izquierda: parada, con punta redondeada -->
+  <path d="M64 136 Q54 72 76 48 Q88 38 102 50 L130 90 Z" fill="#ffffff"/>
+  <!-- cabeza -->
+  <ellipse cx="128" cy="148" rx="70" ry="64" fill="#ffffff"/>
+  <!-- mancha alrededor de un ojo -->
+  <ellipse cx="158" cy="136" rx="21" ry="19" fill="#d6e4fd"/>
+  <!-- oreja derecha: caída, cuelga al costado de la cabeza -->
+  <path d="M146 92 Q178 60 204 70 Q218 78 216 102 Q214 134 202 154 Q194 166 185 153 Q178 130 168 114 Z" fill="#9fbdf5"/>
+  <!-- ojos -->
+  <circle cx="98" cy="138" r="10" fill="#0f1623"/>
+  <circle cx="158" cy="138" r="10" fill="#0f1623"/>
+  <!-- hocico y nariz -->
+  <ellipse cx="128" cy="180" rx="33" ry="23" fill="#eaf1fe"/>
+  <path d="M112 166 Q128 156 144 166 Q142 182 128 184 Q114 182 112 166 Z" fill="#0f1623"/>
+</svg>
