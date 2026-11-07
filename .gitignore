@@ -9,3 +9,8 @@ frontend/dist
 runtime/**
 !runtime/*/
 !runtime/*/.gitkeep
+
+# Binarios que empaqueta el instalador (tools/fetch-bins.ps1 -Dest build/payload/bin)
+build/payload
+# Temporal de wails build -nsis (bootstrapper de WebView2)
+build/windows/installer/tmp

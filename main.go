@@ -7,28 +7,29 @@ import (
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
-
-	"kiltro/internal/hosts"
 )
 
 //go:embed all:frontend/dist
 var assets embed.FS
 
-// Ícono de la bandeja (el mismo del .exe). Por ahora el de la plantilla de Wails.
+// Ícono de la bandeja (el mismo del .exe).
 //
 //go:embed build/windows/icon.ico
 var trayIcon []byte
 
 func main() {
-	// Modo "escribir hosts": la app se relanzó a sí misma como admin (UAC) solo
-	// para modificar el archivo hosts. Se hace eso y se sale, SIN abrir ventana.
-	// Ver internal/hosts/elevate.go.
-	if len(os.Args) >= 3 && os.Args[1] == "--write-hosts" {
-		os.Exit(hosts.RunElevated(os.Args[2]))
+	// Modos sin ventana (--write-hosts, --install-ca, --uninstall...): se hace
+	// la tarea y se sale, SIN arrancar Wails. Ver cli.go.
+	if handled, code := runCLI(os.Args[1:]); handled {
+		os.Exit(code)
 	}
 
 	// Create an instance of the app structure
 	app := NewApp(trayIcon)
+
+	// --tray: arrancar escondido en la bandeja (lo usa "Iniciar con Windows" del
+	// instalador). La ventana se abre desde el ícono, como siempre.
+	startHidden := len(os.Args) > 1 && os.Args[1] == "--tray"
 
 	err := wails.Run(&options.App{
 		Title:  "Kiltro",
@@ -44,6 +45,7 @@ func main() {
 		// La X esconde la ventana en la bandeja: los servicios siguen corriendo.
 		// Para cerrar de verdad: "Salir" en el menú de la bandeja.
 		HideWindowOnClose: true,
+		StartHidden:       startHidden,
 
 		// Un solo Kiltro a la vez (dos pelearían por los puertos y el Job).
 		// Si se abre otra vez el .exe, se muestra la ventana del que ya corre.

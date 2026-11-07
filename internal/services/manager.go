@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 
 	"kiltro/internal/certs"
 	"kiltro/internal/config"
@@ -298,10 +299,16 @@ func (m *ServiceManager) EnableSSL() error {
 		m.env.Log.Printf("[ssl] no se activa: %v", err)
 		return err
 	}
-	m.env.Log.Printf("[ssl] instalando la CA de mkcert (Windows pide confirmación)...")
-	if err := certs.Install(m.env.Job); err != nil {
-		m.env.Log.Printf("[ssl] %v", err)
-		return err
+	if certs.TrustedByMachine() {
+		// La instaló el instalador de Kiltro (como admin): no hace falta el
+		// aviso de seguridad de `mkcert -install`.
+		m.env.Log.Printf("[ssl] la CA ya está en el almacén de la máquina (instalador)")
+	} else {
+		m.env.Log.Printf("[ssl] instalando la CA de mkcert (Windows pide confirmación)...")
+		if err := certs.Install(m.env.Job); err != nil {
+			m.env.Log.Printf("[ssl] %v", err)
+			return err
+		}
 	}
 	if err := config.Update(func(s *config.Settings) { s.SSL = true }); err != nil {
 		return err
@@ -603,11 +610,47 @@ func (m *ServiceManager) UninstallCA() error {
 			return err
 		}
 	}
-	m.env.Log.Printf("[ssl] desinstalando la CA de mkcert (Windows pide confirmación)...")
-	if err := certs.Uninstall(m.env.Job); err != nil {
-		m.env.Log.Printf("[ssl] %v", err)
-		return err
+	// 1. Almacén de la MÁQUINA (lo puso el instalador): requiere admin, así que
+	//    se relanza kiltro.exe --remove-ca con UAC.
+	if certs.TrustedByMachine() {
+		m.env.Log.Printf("[ssl] quitando la CA del almacén de la máquina (Windows pide permiso de administrador)...")
+		if err := removeMachineCAElevated(); err != nil {
+			m.env.Log.Printf("[ssl] %v", err)
+			return err
+		}
+		m.env.Log.Printf("[ssl] CA quitada del almacén de la máquina")
+	}
+	// 2. Almacén del USUARIO (lo puso mkcert -install). Se pregunta DESPUÉS de
+	//    quitarla de la máquina: el del usuario también muestra los de la máquina.
+	if certs.TrustedByUser() {
+		m.env.Log.Printf("[ssl] desinstalando la CA de mkcert (Windows pide confirmación)...")
+		if err := certs.Uninstall(m.env.Job); err != nil {
+			m.env.Log.Printf("[ssl] %v", err)
+			return err
+		}
 	}
 	m.env.Log.Printf("[ssl] CA desinstalada de Windows")
+	return nil
+}
+
+// removeMachineCAElevated relanza el propio exe como admin para quitar la CA
+// del almacén de la máquina (ver main.go, --remove-ca). Igual que con el hosts,
+// la ruta del rootCA.pem va como argumento: el proceso elevado no hereda
+// KILTRO_ROOT.
+func removeMachineCAElevated() error {
+	exe, err := os.Executable()
+	if err != nil {
+		return err
+	}
+	code, err := procutil.RunElevatedAndWait(exe, `--remove-ca "`+certs.CAFile()+`"`, 2*time.Minute)
+	if errors.Is(err, procutil.ErrCancelled) {
+		return errors.New("no se quitó la CA: no se aceptó el permiso de administrador")
+	}
+	if err != nil {
+		return err
+	}
+	if code != 0 || certs.TrustedByMachine() {
+		return fmt.Errorf("no se pudo quitar la CA del almacén de la máquina (código %d, ver logs\\kiltro.log)", code)
+	}
 	return nil
 }

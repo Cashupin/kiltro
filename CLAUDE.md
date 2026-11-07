@@ -170,10 +170,10 @@ Trabajar **una etapa a la vez**. No adelantar trabajo de etapas siguientes.
   - [x] 10a: Binarios reproducibles y licencias. `tools/bins.json` (versión, URL, SHA-256 de cada
         binario) + `tools/fetch-bins.ps1` (descarga, verifica, descomprime en `bin/`, recorta MySQL;
         mkcert con `go install`). `LICENSE` (GPL-3.0), `THIRD-PARTY-NOTICES.md`, README "Cómo compilar".
-  - [ ] 10b: Cambios en Kiltro para el instalador: no reinstalar la CA si ya está en el almacén de
+  - [x] 10b: Cambios en Kiltro para el instalador: no reinstalar la CA si ya está en el almacén de
         la máquina; flags `--install-ca` (crea la CA y la registra en la máquina) y `--uninstall`
         (quita CA, bloque del hosts y `bin\shims` del PATH).
-  - [ ] 10c: Script NSIS (`build/windows/installer/project.nsi`): `C:\kiltro`, accesos directos,
+  - [x] 10c: Script NSIS (`build/windows/installer/project.nsi`): `C:\kiltro`, accesos directos,
         "Agregar o quitar programas", pedir cerrar Kiltro si está abierto, conservar `www\`,
         `data\` y `config.json` al actualizar; desinstalador con casilla "borrar también mis
         proyectos y bases de datos" (desmarcada por defecto).
@@ -194,7 +194,7 @@ Trabajar **una etapa a la vez**. No adelantar trabajo de etapas siguientes.
 
 ## Estado actual
 
-**Etapas 1 a 9 completas y 10a** (2026-11-07). Siguiente: 10b (cambios en Kiltro para el instalador).
+**Etapas 1 a 9 completas, 10a, 10b y 10c** (2026-11-07). Siguiente: 10d (release.ps1, prueba en Windows Sandbox, GitHub Releases).
 
 Notas para las próximas etapas:
 - La plantilla svelte-ts de Wails v2.17.1 trae Svelte 5: se usa `mount()` en `main.ts`, pero
@@ -279,3 +279,25 @@ Notas para las próximas etapas:
   `bins.json` (sha256 de la fuente oficial) y el README. MySQL recortado (sin .pdb, .lib,
   include, mecab, plugin/debug): ~275 MB, probado con initialize + REGEXP. Licencia GPL-3.0
   (Cashupin); licencias de terceros en `THIRD-PARTY-NOTICES.md`.
+- Instalador (10b): modos sin ventana en `cli.go` (`--write-hosts`, `--remove-ca <pem>`,
+  `--install-ca`, `--uninstall`); resultado en `logs/kiltro.log` + código de salida (el exe es
+  GUI: no hay consola). `internal/certs/machine.go`: CA en el almacén "Root" de la MÁQUINA con
+  la API de Windows (CertOpenStore; leer no pide admin, escribir sí). `EnableSSL` se salta
+  `mkcert -install` si la CA ya está en la máquina; `UninstallCA` la quita con UAC
+  (`--remove-ca`) y después, si queda, la del usuario. OJO: el "Root" del usuario también
+  muestra los de la máquina (`TrustedByUser` da true en ese caso). mkcert solo crea la CA al
+  firmar algo (`CreateCA` firma `localhost`). Elevación común en `procutil.RunElevatedAndWait`.
+  Para 10c: los archivos que crea `--install-ca` (como admin) heredan permisos de la carpeta de
+  instalación: el instalador debe dar Modificar a Usuarios en `C:\kiltro` (Kiltro escribe ahí).
+- Instalador (10c): `build/windows/installer/project.nsi` (español, MUI2). Paquete de binarios
+  en `build/payload/bin` (ignorado en git; `fetch-bins.ps1 -Dest build\payload\bin`). Versión en
+  `wails.json` → `info.productVersion`. `icacls ... *S-1-5-32-545:(OI)(CI)M` (Usuarios por SID).
+  "Kiltro abierto" se detecta abriendo kiltro.exe para escritura (falla si está en ejecución).
+  "Abrir Kiltro" al final vía `explorer.exe` para que NO corra como admin. Registro en
+  HKLM `...\Uninstall\Kiltro` con `InstallLocation` (actualizar = misma carpeta). Probado con
+  instalación/actualización/desinstalación silenciosas en `C:\kiltro-prueba` (2026-11-07).
+  Con `uninstall.exe /S _?=<dir>` (modo de prueba de NSIS) el uninstall.exe no se borra: normal.
+  `project.nsi` tiene que ser UTF-8 CON BOM (sin BOM NSIS lo lee como ANSI: acentos rotos).
+  Opciones del instalador (desmarcadas): escritorio y "iniciar con Windows" (HKCU Run →
+  `kiltro.exe --tray`, que usa `StartHidden` de Wails). Ojo: en NSIS `$Desktop`/`$Startup` son
+  constantes; las variables se llaman `OptDesktop`/`OptStartup`.

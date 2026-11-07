@@ -9,5 +9,12 @@
   "author": {
     "name": "Cashupin",
     "email": "jalvarezc96@gmail.com"
+  },
+  "info": {
+    "companyName": "Cashupin",
+    "productName": "Kiltro",
+    "productVersion": "0.1.0",
+    "copyright": "Copyright (C) 2026 Cashupin. Licencia GPL-3.0.",
+    "comments": "Entorno de desarrollo local liviano para Windows (Nginx, PHP, MySQL, Redis)"
   }
 }

@@ -208,17 +208,32 @@ Pestaña **Configuración** (se guarda en `config.json`, junto al exe):
 - Botón **Activar HTTPS** (debajo del archivo hosts). Windows muestra un aviso de seguridad
   preguntando si confías en el certificado "mkcert ..." de Kiltro: hay que aceptar. No
   requiere admin (se instala para tu usuario).
+- **Con el instalador** no aparece ese aviso: el instalador (que corre como admin) pone la CA
+  en el almacén de la **máquina** y Kiltro, al ver que ya está ahí, se salta `mkcert -install`.
+  Al quitarla desde Configuración, Windows pide permiso de administrador (UAC) en vez del aviso.
 - Después, todos los sitios responden también por `https://proyecto.test` (y `http://` sigue
   funcionando). Los proyectos nuevos reciben su certificado al pulsar "Recargar sitios".
 - Necesita el **puerto 443** libre (VMware o algunos antivirus lo usan).
 - La autoridad certificadora (CA) queda en `etc/ssl/ca/` y los certificados en
   `etc/ssl/certs/`. **No compartas `rootCA-key.pem`**: con ese archivo se pueden crear
   certificados que tu PC acepta para cualquier sitio.
-- Para quitar la CA de Windows: botón en **Configuración**, o a mano en `certmgr.msc` → Entidades de certificación raíz de confianza →
+- Para quitar la CA de Windows: botón en **Configuración**, o a mano en `certmgr.msc` (la del usuario) o `certlm.msc` (la de la máquina) → Entidades de certificación raíz de confianza →
   Certificados → borrar el que empieza con "mkcert".
 - Firefox usa los certificados de Windows por defecto (`security.enterprise_roots.enabled`).
 - Para Laravel, recuerda poner `APP_URL=https://proyecto.test` en el `.env` si usas HTTPS.
 
+## Modos sin ventana de kiltro.exe
+
+Los usa el instalador (y la propia app, con UAC). No abren la ventana: hacen la tarea, dejan
+el resultado en `logs/kiltro.log` y salen con código 0 si todo salió bien.
+
+| Comando | Quién lo usa | Qué hace |
+|---------|--------------|----------|
+| `kiltro.exe --install-ca` | Instalador (admin) | Crea la CA de Kiltro y la pone en el almacén de la máquina |
+| `kiltro.exe --uninstall` | Desinstalador (admin) | Quita la CA de la máquina, el bloque del hosts y `bin\shims` del PATH |
+| `kiltro.exe --write-hosts <archivo>` | Kiltro (UAC) | Escribe el bloque del hosts |
+| `kiltro.exe --remove-ca <rootCA.pem>` | Kiltro (UAC) | Quita la CA del almacén de la máquina |
+| `kiltro.exe --tray` | "Iniciar con Windows" | Abre Kiltro escondido en la bandeja (este SÍ abre la app) |
 ## Bandeja del sistema
 
 - Cerrar la ventana con la **X** no cierra Kiltro: la esconde en la bandeja (junto al
@@ -236,6 +251,38 @@ wails build
 ```
 
 Genera `build/bin/kiltro.exe`.
+
+## Instalador
+
+```powershell
+.\tools\fetch-bins.ps1 -Dest build\payload\bin   # los binarios que van adentro (una vez)
+wails build -nsis                                 # sale build\bin\kiltro-setup-<versión>.exe
+```
+
+Necesita NSIS (`winget install NSIS.NSIS`) con `C:\Program Files (x86)\NSIS` en el PATH. La
+versión sale de `info.productVersion` en `wails.json`. El script es
+`build/windows/installer/project.nsi` (`wails_tools.nsh` lo regenera Wails: no editarlo).
+
+Qué hace el instalador (pide admin una vez):
+- Instala en `C:\kiltro` (no se deja elegir Archivos de programa: Kiltro escribe junto al exe)
+  y da permiso de Modificar a Usuarios en esa carpeta.
+- Copia `kiltro.exe` y `bin\`, crea `www\`, el acceso directo del menú Inicio y la
+  entrada en "Agregar o quitar programas".
+- Pone la CA de HTTPS en el almacén de la máquina (`kiltro.exe --install-ca`).
+- Opciones (desmarcadas por defecto; al actualizar muestran lo que ya estaba): **acceso
+  directo en el escritorio** e **iniciar con Windows** (valor `Kiltro` en
+  `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` con `kiltro.exe --tray`: arranca
+  escondido en la bandeja, sin iniciar servicios). Se desactiva también en el Administrador de
+  tareas → Aplicaciones de arranque.
+- Si Kiltro está abierto, pide cerrarlo. Instalar encima (actualizar) conserva `www\`, `data\`,
+  `config.json` y los `php.ini`.
+- "Abrir Kiltro" al terminar lo abre **sin** admin.
+
+El desinstalador quita la CA, el bloque del hosts y `bin\shims` del PATH (`--uninstall`) y
+borra los programas. `www\`, `data\` y `config.json` se conservan salvo que se marque
+"Borrar también mis proyectos y bases de datos". Los backups del hosts quedan en `hosts-backup\`.
+
+Instalación silenciosa: `kiltro-setup-<versión>.exe /S /D=C:\kiltro` · desinstalar: `C:\kiltro\uninstall.exe /S`.
 
 ## Tests
 
