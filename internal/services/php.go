@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"kiltro/internal/i18n"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -106,7 +107,7 @@ func (p *PHP) Detail() string {
 			alive++
 		}
 	}
-	return fmt.Sprintf("%d/%d workers", alive, len(p.workers))
+	return i18n.T("php.workers", "alive", alive, "total", len(p.workers))
 }
 
 func (p *PHP) setStatus(s Status, errMsg string) {
@@ -177,7 +178,7 @@ func (p *PHP) Start() error {
 		}
 		if time.Now().After(deadline) {
 			p.killAll()
-			return p.fail(fmt.Errorf("los workers de PHP no empezaron a escuchar tras %s", phpStartTimeout))
+			return p.fail(i18n.Err("php.notListening", "timeout", phpStartTimeout))
 		}
 		time.Sleep(100 * time.Millisecond)
 	}
@@ -199,7 +200,7 @@ func (p *PHP) launch(w *phpWorker) (*exec.Cmd, *bytes.Buffer, error) {
 	defer p.mu.Unlock()
 
 	if p.stopping {
-		return nil, nil, errors.New("detenido")
+		return nil, nil, i18n.Err("php.stopped")
 	}
 
 	extDir := filepath.Join(filepath.Dir(p.exe), "ext")
@@ -219,7 +220,7 @@ func (p *PHP) launch(w *phpWorker) (*exec.Cmd, *bytes.Buffer, error) {
 	cmd.Stderr = &stderr
 
 	if err := procutil.Start(p.env.Job, cmd); err != nil {
-		return nil, nil, fmt.Errorf("worker :%d: %w", w.port, err)
+		return nil, nil, i18n.Wrap(err, "php.worker", "port", w.port)
 	}
 	w.cmd = cmd
 	return cmd, &stderr, nil
@@ -252,7 +253,7 @@ func (p *PHP) supervise(w *phpWorker, cmd *exec.Cmd, out *bytes.Buffer) {
 		p.mu.Unlock()
 		p.env.Notify() // cambió la cantidad de workers vivos
 
-		msg := fmt.Sprintf("worker :%d terminó inesperadamente", w.port)
+		msg := i18n.T("php.workerDied", "port", w.port)
 		if waitErr != nil {
 			msg += " (" + waitErr.Error() + ")"
 		}
@@ -261,8 +262,7 @@ func (p *PHP) supervise(w *phpWorker, cmd *exec.Cmd, out *bytes.Buffer) {
 		}
 
 		if tooMany {
-			msg = fmt.Sprintf("%s. Se cayó más de %d veces en %s; se detiene PHP.",
-				msg, phpMaxCrashes, phpCrashWindow)
+			msg = i18n.T("php.tooManyCrashes", "msg", msg, "n", phpMaxCrashes, "window", phpCrashWindow)
 			p.env.Log.Printf("[php] %s", msg)
 			p.killAll()
 			p.setStatus(StatusError, msg)
@@ -330,7 +330,7 @@ func (p *PHP) Stop() error {
 		p.setStatus(StatusStopped, "")
 		return nil
 	case <-time.After(5 * time.Second):
-		return p.fail(errors.New("algunos workers de PHP no terminaron"))
+		return p.fail(i18n.Err("php.workersStuck"))
 	}
 }
 
@@ -350,7 +350,7 @@ func ensurePhpIni(phpDir string) (string, error) {
 	src := filepath.Join(phpDir, "php.ini-development")
 	data, err := os.ReadFile(src)
 	if err != nil {
-		return "", fmt.Errorf("no existe php.ini ni %s para crearlo: %w", src, err)
+		return "", i18n.Wrap(err, "php.noIniSource", "src", src)
 	}
 	text := string(data)
 
@@ -365,7 +365,7 @@ func ensurePhpIni(phpDir string) (string, error) {
 		"; (extension_dir lo pasa Kiltro al arrancar, no hace falta definirlo aquí)\n\n"
 
 	if err := os.WriteFile(ini, []byte(header+text), 0o644); err != nil {
-		return "", fmt.Errorf("no se pudo crear %s: %w", ini, err)
+		return "", i18n.Wrap(err, "err.create", "path", ini)
 	}
 	return ini, nil
 }

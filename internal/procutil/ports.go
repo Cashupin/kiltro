@@ -3,6 +3,7 @@ package procutil
 import (
 	"errors"
 	"fmt"
+	"kiltro/internal/i18n"
 	"net"
 	"unsafe"
 
@@ -23,17 +24,17 @@ func (e *PortInUseError) Error() string {
 	case e.PID == 4:
 		// PID 4 es "System": un componente del kernel. En 80/443 casi siempre es
 		// http.sys (IIS, WinRM, etc.); en otros puertos puede ser SMB u otro servicio.
-		return fmt.Sprintf("el puerto %d está en uso por Windows (PID 4 \"System\"; en 80/443 suele ser IIS o http.sys)", e.Port)
+		return i18n.T("ports.system", "port", e.Port)
 	case e.PID != 0 && e.ProcessName != "":
-		return fmt.Sprintf("el puerto %d está en uso por %s (PID %d)", e.Port, e.ProcessName, e.PID)
+		return i18n.T("ports.byProcess", "port", e.Port, "name", e.ProcessName, "pid", e.PID)
 	case e.PID != 0:
-		return fmt.Sprintf("el puerto %d está en uso por el proceso con PID %d", e.Port, e.PID)
+		return i18n.T("ports.byPid", "port", e.Port, "pid", e.PID)
 	case e.Cause != nil:
 		// Nadie escucha, pero Windows no deja usarlo. Típico: rango de puertos
 		// reservado por Hyper-V/WSL (ver `netsh interface ipv4 show excludedportrange protocol=tcp`).
-		return fmt.Sprintf("no se puede usar el puerto %d: %v (¿reservado por Hyper-V/WSL?)", e.Port, e.Cause)
+		return i18n.T("ports.reserved", "port", e.Port, "err", e.Cause)
 	default:
-		return fmt.Sprintf("el puerto %d está en uso", e.Port)
+		return i18n.T("ports.inUse", "port", e.Port)
 	}
 }
 

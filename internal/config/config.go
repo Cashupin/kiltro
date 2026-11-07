@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"kiltro/internal/i18n"
 	"os"
 	"path/filepath"
 	"sync"
@@ -79,12 +80,12 @@ func load() (Settings, error) {
 	}
 	if err != nil {
 		s.applyDefaults()
-		return s, fmt.Errorf("no se pudo leer config.json: %w", err)
+		return s, i18n.Wrap(err, "err.read", "path", "config.json")
 	}
 	if err := json.Unmarshal(data, &s); err != nil {
 		s = Settings{}
 		s.applyDefaults()
-		return s, fmt.Errorf("config.json no es un JSON válido: %w", err)
+		return s, i18n.Wrap(err, "config.badJSON")
 	}
 	s.applyDefaults()
 	return s, nil
@@ -140,7 +141,7 @@ func (s Settings) Validate() error {
 		{"Redis", s.RedisPort},
 	}
 	if s.PHPWorkers < 1 || s.PHPWorkers > MaxPHPWorkers {
-		return fmt.Errorf("la cantidad de workers de PHP debe estar entre 1 y %d", MaxPHPWorkers)
+		return i18n.Err("config.workers", "max", MaxPHPWorkers)
 	}
 	for i, p := range s.PHPPorts() {
 		named = append(named, struct {
@@ -152,21 +153,21 @@ func (s Settings) Validate() error {
 	used := map[int]string{}
 	for _, n := range named {
 		if n.port < 1 || n.port > 65535 {
-			return fmt.Errorf("el puerto de %s (%d) debe estar entre 1 y 65535", n.name, n.port)
+			return i18n.Err("config.portRange", "name", n.name, "port", n.port)
 		}
 		if other, ok := used[n.port]; ok {
-			return fmt.Errorf("el puerto %d está repetido: lo usan %s y %s", n.port, other, n.name)
+			return i18n.Err("config.portRepeated", "port", n.port, "a", other, "b", n.name)
 		}
 		used[n.port] = n.name
 	}
 
 	if s.WWW != "" {
 		if !filepath.IsAbs(s.WWW) {
-			return fmt.Errorf("la carpeta de proyectos debe ser una ruta completa (ej. D:\\proyectos)")
+			return i18n.Err("config.wwwAbs")
 		}
 		info, err := os.Stat(s.WWW)
 		if err != nil || !info.IsDir() {
-			return fmt.Errorf("la carpeta de proyectos no existe: %s", s.WWW)
+			return i18n.Err("config.wwwMissing", "path", s.WWW)
 		}
 	}
 	return nil

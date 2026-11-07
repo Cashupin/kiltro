@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"kiltro/internal/i18n"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -145,8 +146,7 @@ func (m *MySQL) Start() error {
 		}
 	} else if !looksLikeMySQLDataDir(mysqlDataDir()) {
 		// Tiene archivos pero no es una base de MySQL: no tocamos nada.
-		return m.fail(fmt.Errorf("%s tiene archivos pero no parece una carpeta de datos de MySQL; "+
-			"no se inicializa para no borrar nada. Vacíala o muévela a mano", mysqlDataDir()))
+		return m.fail(i18n.Err("mysql.notDataDir", "path", mysqlDataDir()))
 	}
 
 	m.set(StatusStarting, "", "")
@@ -187,8 +187,8 @@ func (m *MySQL) Start() error {
 		if time.Now().After(deadline) {
 			// No llegó a estar listo: se intenta el apagado limpio igual.
 			_ = m.Stop()
-			return m.fail(fmt.Errorf("MySQL no empezó a escuchar en el puerto %d tras %s; revisa %s",
-				m.runningPort(), mysqlStartTimeout, mysqlErrorLog()))
+			return m.fail(i18n.Err("err.notListeningLog", "name", "MySQL",
+				"port", m.runningPort(), "timeout", mysqlStartTimeout, "log", mysqlErrorLog()))
 		}
 		time.Sleep(200 * time.Millisecond)
 	}
@@ -208,7 +208,7 @@ func (m *MySQL) initialize(bin string) error {
 	cnf := fmt.Sprintf("# Generado por Kiltro. Usuario interno solo para apagar MySQL (permiso SHUTDOWN).\n"+
 		"[client]\nuser=%s\npassword=%s\nhost=127.0.0.1\nport=%d\n", mysqlAdminUser, pw, m.runningPort())
 	if err := os.WriteFile(mysqlAdminCnf(), []byte(cnf), 0o600); err != nil {
-		return fmt.Errorf("no se pudo escribir %s: %w", mysqlAdminCnf(), err)
+		return i18n.Wrap(err, "err.write", "path", mysqlAdminCnf())
 	}
 
 	// --init-file: SQL que mysqld ejecuta durante la inicialización.
@@ -239,7 +239,7 @@ func (m *MySQL) initialize(bin string) error {
 		// una inicialización a medias (sin datos del usuario). Se limpia para que
 		// el próximo intento pueda inicializar de nuevo.
 		_ = os.RemoveAll(mysqlDataDir())
-		return fmt.Errorf("falló la inicialización de MySQL: %v %s %s", err, out, lastErrorLines(mysqlErrorLog(), initOffset, 5))
+		return i18n.Wrap(err, "mysql.initFailed", "details", strings.TrimSpace(out+" "+lastErrorLines(mysqlErrorLog(), initOffset, 5)))
 	}
 
 	m.env.Log.Printf("[mysql] inicializado: usuario root@localhost sin contraseña")
@@ -320,7 +320,7 @@ func (m *MySQL) Stop() error {
 	case <-exited:
 		return nil
 	case <-time.After(5 * time.Second):
-		return m.fail(fmt.Errorf("no se pudo detener MySQL (PID %d)", cmd.Process.Pid))
+		return m.fail(i18n.Err("err.stopFailed", "name", "MySQL", "pid", cmd.Process.Pid))
 	}
 }
 
@@ -384,8 +384,8 @@ func (m *MySQL) mysqladminShutdown() error {
 func mysqlBinDir() (string, error) {
 	matches, _ := filepath.Glob(config.Path("bin", "mysql", "mysql-*", "bin", "mysqld.exe"))
 	if len(matches) == 0 {
-		return "", fmt.Errorf("no se encontró MySQL: se esperaba %s",
-			config.Path("bin", "mysql", "mysql-<versión>", "bin", "mysqld.exe"))
+		return "", i18n.Err("err.notFound", "what", "MySQL",
+			"path", config.Path("bin", "mysql", "mysql-<versión>", "bin", "mysqld.exe"))
 	}
 	sort.Strings(matches)
 	return filepath.Dir(matches[len(matches)-1]), nil
@@ -414,7 +414,7 @@ max_connections=50
 `, slash(baseDir), slash(mysqlDataDir()), slash(mysqlErrorLog()), port)
 
 	if err := os.WriteFile(mysqlIni(), []byte(ini), 0o644); err != nil {
-		return fmt.Errorf("no se pudo escribir %s: %w", mysqlIni(), err)
+		return i18n.Wrap(err, "err.write", "path", mysqlIni())
 	}
 	return nil
 }
@@ -488,7 +488,7 @@ func runAndWait(job *procutil.Job, cmd *exec.Cmd, timeout time.Duration) (string
 	case <-time.After(timeout):
 		_ = cmd.Process.Kill()
 		<-done
-		return "timeout", fmt.Errorf("timeout tras %s", timeout)
+		return "timeout", i18n.Err("err.timeout", "timeout", timeout)
 	}
 }
 

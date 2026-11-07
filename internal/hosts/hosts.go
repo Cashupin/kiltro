@@ -12,7 +12,7 @@
 package hosts
 
 import (
-	"fmt"
+	"kiltro/internal/i18n"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -48,7 +48,7 @@ func SystemPath() string {
 func Read() (string, error) {
 	data, err := os.ReadFile(SystemPath())
 	if err != nil {
-		return "", fmt.Errorf("no se pudo leer el archivo hosts: %w", err)
+		return "", i18n.Wrap(err, "hosts.readFailed")
 	}
 	return string(data), nil
 }
@@ -105,7 +105,7 @@ func UpToDate(content string, domains []string) bool {
 func ReplaceBlock(content string, domains []string) (string, error) {
 	for _, d := range domains {
 		if !ValidDomain(d) {
-			return "", fmt.Errorf("dominio inválido para el hosts: %q", d)
+			return "", i18n.Err("hosts.badDomain", "domain", d)
 		}
 	}
 
@@ -180,12 +180,12 @@ func findBlock(lines []string) (start, end int, err error) {
 		switch strings.TrimSpace(line) {
 		case StartMarker:
 			if start >= 0 {
-				return -1, -1, fmt.Errorf("el hosts tiene dos %q; corrígelo a mano", StartMarker)
+				return -1, -1, i18n.Err("hosts.twoStart", "marker", StartMarker)
 			}
 			start = i
 		case EndMarker:
 			if start < 0 {
-				return -1, -1, fmt.Errorf("el hosts tiene %q sin %q; corrígelo a mano", EndMarker, StartMarker)
+				return -1, -1, i18n.Err("hosts.unpaired", "a", EndMarker, "b", StartMarker)
 			}
 			if end < 0 {
 				end = i
@@ -193,7 +193,7 @@ func findBlock(lines []string) (start, end int, err error) {
 		}
 	}
 	if start >= 0 && end < 0 {
-		return -1, -1, fmt.Errorf("el hosts tiene %q sin %q; corrígelo a mano", StartMarker, EndMarker)
+		return -1, -1, i18n.Err("hosts.unpaired", "a", StartMarker, "b", EndMarker)
 	}
 	return start, end, nil
 }

@@ -2,7 +2,7 @@ package vhosts
 
 import (
 	"bytes"
-	"fmt"
+	"kiltro/internal/i18n"
 	"os"
 	"path/filepath"
 	"strings"
@@ -49,11 +49,11 @@ func Generate(sites []Site, opts Options) error {
 	}
 	tmpl, err := template.New("vhost").Parse(string(raw))
 	if err != nil {
-		return fmt.Errorf("plantilla de vhost inválida: %w", err)
+		return i18n.Wrap(err, "vhosts.badTemplate")
 	}
 
 	if err := os.MkdirAll(opts.SitesDir, 0o755); err != nil {
-		return fmt.Errorf("no se pudo crear %s: %w", opts.SitesDir, err)
+		return i18n.Wrap(err, "err.create", "path", opts.SitesDir)
 	}
 
 	keep := map[string]bool{}
@@ -75,13 +75,13 @@ func Generate(sites []Site, opts Options) error {
 		var buf bytes.Buffer
 		err := tmpl.Execute(&buf, data)
 		if err != nil {
-			return fmt.Errorf("vhost de %s: %w", s.Domain, err)
+			return i18n.Wrap(err, "vhosts.vhost", "domain", s.Domain)
 		}
 
 		file := s.Domain + ".conf"
 		keep[file] = true
 		if err := os.WriteFile(filepath.Join(opts.SitesDir, file), buf.Bytes(), 0o644); err != nil {
-			return fmt.Errorf("no se pudo escribir el vhost de %s: %w", s.Domain, err)
+			return i18n.Wrap(err, "vhosts.writeFailed", "domain", s.Domain)
 		}
 	}
 
@@ -95,7 +95,7 @@ func Generate(sites []Site, opts Options) error {
 			continue
 		}
 		if err := os.Remove(filepath.Join(opts.SitesDir, e.Name())); err != nil {
-			return fmt.Errorf("no se pudo borrar el vhost viejo %s: %w", e.Name(), err)
+			return i18n.Wrap(err, "vhosts.deleteOld", "name", e.Name())
 		}
 	}
 	return nil

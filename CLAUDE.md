@@ -188,7 +188,7 @@ Trabajar **una etapa a la vez**. No adelantar trabajo de etapas siguientes.
     (`"lang"` en config.json), cambia sin reiniciar. Los logs quedan en el idioma elegido.
   - [x] 11a: Base (catálogos, `T`/`$t`, detección, selector en Configuración) + textos de las
         3 pantallas y de la bandeja. Test: mismas claves en ambos idiomas y claves usadas existen.
-  - [ ] 11b: Mensajes del backend (errores, estados, detalles que llegan a la UI).
+  - [x] 11b: Mensajes del backend (errores, estados, detalles que llegan a la UI).
   - [ ] 11c: Instalador bilingüe, `LEEME.txt` en dos idiomas, capturas en inglés para README.en.md.
   - [ ] 11d: Publicar la 0.1.0 (release.ps1, repo público, tag y GitHub Release).
 - [ ] **Etapa 12:** Descargador de versiones de PHP (lista de windows.php.net, incluidas las del
@@ -206,7 +206,7 @@ Trabajar **una etapa a la vez**. No adelantar trabajo de etapas siguientes.
 
 ## Estado actual
 
-**Etapas 1 a 10 completas y 11a** (2026-11-07). Versión 0.1.0 armada (sin publicar). Siguiente: 11b (mensajes del backend en es/en).
+**Etapas 1 a 10 completas, 11a y 11b** (2026-11-07). Versión 0.1.0 armada (sin publicar). Siguiente: 11c (instalador bilingüe, LEEME en dos idiomas, capturas en inglés).
 
 Notas para las próximas etapas:
 - La plantilla svelte-ts de Wails v2.17.1 trae Svelte 5: se usa `mount()` en `main.ts`, pero
@@ -329,3 +329,12 @@ Notas para las próximas etapas:
   en es.json Y en.json; `go test ./internal/i18n` falla si falta una clave, si los marcadores
   no coinciden o si el código usa una clave inexistente. Claves armadas en tiempo de ejecución
   terminan en punto: `$t('status.' + s.status)`, `$t('logs.name.' + l.id)`.
+- Mensajes del backend (11b): errores para la UI con `i18n.Err("clave", ...)` o
+  `i18n.Wrap(err, "clave", ...)` (el valor usa `{err}`; conserva el error original para
+  `errors.Is`). Claves genéricas `err.write`, `err.create`, `err.read`, `err.open`,
+  `err.notFound`, `err.stopFailed`, `err.notListening(Log)`. Los errores "centinela"
+  (`procutil.ErrCancelled`, `hosts.ErrCancelled`) son tipos con `Error()` que llama a `T`, para
+  que salgan en el idioma actual aunque se cambie después. Las líneas del log
+  (`Log.Printf("[x] ...")`) siguen en español a propósito; los errores que se loguean salen en
+  el idioma en uso. El proceso elevado (`--write-hosts`) no lee config.json: usa el idioma de
+  Windows.

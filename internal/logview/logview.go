@@ -8,8 +8,8 @@ package logview
 import (
 	"bytes"
 	"errors"
-	"fmt"
 	"io"
+	"kiltro/internal/i18n"
 	"os"
 	"strings"
 
@@ -41,7 +41,7 @@ func find(id string) (Log, error) {
 			return l, nil
 		}
 	}
-	return Log{}, fmt.Errorf("log desconocido: %q", id)
+	return Log{}, i18n.Err("err.unknownLog", "id", id)
 }
 
 // Result es lo que recibe la UI.
@@ -129,7 +129,7 @@ func Clear(id string) error {
 		return nil // no hay nada que vaciar
 	}
 	if err != nil {
-		return fmt.Errorf("no se pudo vaciar %s: %w", l.Path, err)
+		return i18n.Wrap(err, "logs.clearFailed", "path", l.Path)
 	}
 	return nil
 }

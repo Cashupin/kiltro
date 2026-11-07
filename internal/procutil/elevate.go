@@ -2,7 +2,7 @@ package procutil
 
 import (
 	"errors"
-	"fmt"
+	"kiltro/internal/i18n"
 	"time"
 	"unsafe"
 
@@ -10,7 +10,13 @@ import (
 )
 
 // ErrCancelled se devuelve si el usuario rechazó el aviso de UAC.
-var ErrCancelled = errors.New("no se aceptó el permiso de administrador")
+// Es un tipo (no errors.New) para que el texto salga en el idioma en uso al
+// mostrarlo, aunque el idioma cambie después de arrancar.
+var ErrCancelled error = cancelledError{}
+
+type cancelledError struct{}
+
+func (cancelledError) Error() string { return i18n.T("elevate.cancelled") }
 
 // --- ShellExecuteExW ---
 //
@@ -75,10 +81,10 @@ func RunElevatedAndWait(exe, params string, wait time.Duration) (uint32, error) 
 		if errors.Is(callErr, windows.ERROR_CANCELLED) {
 			return 0, ErrCancelled
 		}
-		return 0, fmt.Errorf("no se pudo pedir permisos de administrador: %w", callErr)
+		return 0, i18n.Wrap(callErr, "elevate.requestFailed")
 	}
 	if info.hProcess == 0 {
-		return 0, errors.New("no se obtuvo el proceso elevado")
+		return 0, i18n.Err("elevate.noProcess")
 	}
 	defer windows.CloseHandle(info.hProcess)
 
@@ -87,7 +93,7 @@ func RunElevatedAndWait(exe, params string, wait time.Duration) (uint32, error) 
 		return 0, err
 	}
 	if ev == uint32(windows.WAIT_TIMEOUT) {
-		return 0, errors.New("el proceso elevado no terminó a tiempo")
+		return 0, i18n.Err("elevate.timeout")
 	}
 
 	var code uint32

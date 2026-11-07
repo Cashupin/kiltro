@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"kiltro/internal/i18n"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -129,7 +130,7 @@ func (n *Nginx) Start() error {
 
 	// Validar la config antes de arrancar: da errores mucho más claros.
 	if out, err := runNginxCommand(n.env.Job, exe, "-t"); err != nil {
-		return n.fail(fmt.Errorf("la configuración de nginx tiene errores: %s", out))
+		return n.fail(i18n.Err("nginx.configErrors", "out", out))
 	}
 
 	// Lanzar el proceso master. Él mismo lanza a sus workers; como el master
@@ -171,7 +172,7 @@ func (n *Nginx) Start() error {
 		if time.Now().After(deadline) {
 			procutil.KillTree(cmd.Process.Pid)
 			<-exited
-			return n.fail(fmt.Errorf("nginx no empezó a escuchar en el puerto %d tras %s", cfg.HTTPPort, nginxStartTimeout))
+			return n.fail(i18n.Err("err.notListening", "name", "Nginx", "port", cfg.HTTPPort, "timeout", nginxStartTimeout))
 		}
 		time.Sleep(100 * time.Millisecond)
 	}
@@ -254,7 +255,7 @@ func (n *Nginx) Stop() error {
 	case <-exited:
 		return nil
 	case <-time.After(3 * time.Second):
-		return n.fail(fmt.Errorf("no se pudo detener nginx (PID %d)", cmd.Process.Pid))
+		return n.fail(i18n.Err("err.stopFailed", "name", "Nginx", "pid", cmd.Process.Pid))
 	}
 }
 
@@ -281,10 +282,10 @@ func (n *Nginx) ReloadSites() ([]vhosts.Site, error) {
 	}
 
 	if out, err := runNginxCommand(n.env.Job, exe, "-t"); err != nil {
-		return sites, fmt.Errorf("la configuración de nginx tiene errores (se sigue usando la anterior): %s", out)
+		return sites, i18n.Err("nginx.configErrorsKept", "out", out)
 	}
 	if out, err := runNginxCommand(n.env.Job, exe, "-s", "reload"); err != nil {
-		return sites, fmt.Errorf("`nginx -s reload` falló: %s", out)
+		return sites, i18n.Err("nginx.reloadFailed", "out", out)
 	}
 	n.env.Log.Printf("[nginx] recargado con %d sitio(s)", len(sites))
 	return sites, nil
@@ -339,8 +340,8 @@ func (n *Nginx) generateSites(exe string) ([]vhosts.Site, error) {
 func nginxExe() (string, error) {
 	matches, _ := filepath.Glob(config.Path("bin", "nginx", "nginx-*", "nginx.exe"))
 	if len(matches) == 0 {
-		return "", fmt.Errorf("no se encontró nginx: se esperaba %s",
-			config.Path("bin", "nginx", "nginx-<versión>", "nginx.exe"))
+		return "", i18n.Err("err.notFound", "what", "Nginx",
+			"path", config.Path("bin", "nginx", "nginx-<versión>", "nginx.exe"))
 	}
 	sort.Strings(matches)
 	return matches[len(matches)-1], nil
@@ -378,7 +379,7 @@ func runNginxCommand(job *procutil.Job, exe string, extra ...string) (string, er
 	case <-time.After(10 * time.Second):
 		_ = cmd.Process.Kill()
 		<-done
-		return "timeout", errors.New("timeout ejecutando nginx " + strings.Join(extra, " "))
+		return "timeout", i18n.Err("nginx.timeout", "args", strings.Join(extra, " "))
 	}
 }
 
@@ -424,14 +425,14 @@ func writeNginxConf(exe string) error {
 		config.Path("etc", "nginx", "sites"),
 	} {
 		if err := os.MkdirAll(dir, 0o755); err != nil {
-			return fmt.Errorf("no se pudo crear %s: %w", dir, err)
+			return i18n.Wrap(err, "err.create", "path", dir)
 		}
 	}
 
 	// Página de prueba. Vive fuera de www/ a propósito: www/ es solo para proyectos.
 	index := filepath.Join(defaultRoot, "index.php")
 	if err := os.WriteFile(index, []byte("<?php\n// Generado por Kiltro (página de prueba).\nphpinfo();\n"), 0o644); err != nil {
-		return fmt.Errorf("no se pudo escribir %s: %w", index, err)
+		return i18n.Wrap(err, "err.write", "path", index)
 	}
 
 	// mime.types y fastcgi.conf vienen con nginx; se usan directo desde su carpeta.
@@ -489,7 +490,7 @@ http {
 
 	path := config.Path(filepath.FromSlash(nginxConfRel))
 	if err := os.WriteFile(path, []byte(conf), 0o644); err != nil {
-		return fmt.Errorf("no se pudo escribir %s: %w", path, err)
+		return i18n.Wrap(err, "err.write", "path", path)
 	}
 	return nil
 }

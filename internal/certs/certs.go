@@ -15,8 +15,7 @@ package certs
 
 import (
 	"bytes"
-	"errors"
-	"fmt"
+	"kiltro/internal/i18n"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -43,7 +42,7 @@ func Files(domain string) (cert, key string) {
 func Exe() (string, error) {
 	matches, _ := filepath.Glob(config.Path("bin", "mkcert", "mkcert*.exe"))
 	if len(matches) == 0 {
-		return "", fmt.Errorf("no se encontró mkcert: se esperaba %s", config.Path("bin", "mkcert", "mkcert.exe"))
+		return "", i18n.Err("err.notFound", "what", "mkcert", "path", config.Path("bin", "mkcert", "mkcert.exe"))
 	}
 	return matches[len(matches)-1], nil
 }
@@ -61,7 +60,7 @@ func Install(job *procutil.Job) error {
 	}
 	out, err := run(job, exe, true, 5*time.Minute, "-install")
 	if err != nil {
-		return fmt.Errorf("mkcert -install falló (¿rechazaste el aviso de Windows?): %s", out)
+		return i18n.Err("certs.installFailed", "out", out)
 	}
 	return nil
 }
@@ -76,7 +75,7 @@ func Ensure(job *procutil.Job, domains []string) ([]string, error) {
 	}
 	caInfo, err := os.Stat(filepath.Join(CARoot(), "rootCA.pem"))
 	if err != nil {
-		return nil, errors.New("no existe la CA de Kiltro: activa HTTPS de nuevo")
+		return nil, i18n.Err("certs.noCA")
 	}
 	if err := os.MkdirAll(certDir(), 0o755); err != nil {
 		return nil, err
@@ -92,7 +91,7 @@ func Ensure(job *procutil.Job, domains []string) ([]string, error) {
 		}
 		out, err := run(job, exe, false, 30*time.Second, "-cert-file", cert, "-key-file", key, d)
 		if err != nil {
-			return created, fmt.Errorf("no se pudo crear el certificado de %s: %s", d, out)
+			return created, i18n.Err("certs.certFailed", "domain", d, "out", out)
 		}
 		created = append(created, d)
 	}
@@ -130,7 +129,7 @@ func run(job *procutil.Job, exe string, dialogs bool, timeout time.Duration, arg
 	case <-time.After(timeout):
 		_ = cmd.Process.Kill()
 		<-done
-		return "timeout", fmt.Errorf("mkcert no terminó tras %s", timeout)
+		return "timeout", i18n.Err("certs.timeout", "timeout", timeout)
 	}
 }
 
@@ -143,7 +142,7 @@ func Uninstall(job *procutil.Job) error {
 	}
 	out, err := run(job, exe, true, 5*time.Minute, "-uninstall")
 	if err != nil {
-		return fmt.Errorf("mkcert -uninstall falló (¿rechazaste el aviso de Windows?): %s", out)
+		return i18n.Err("certs.uninstallFailed", "out", out)
 	}
 	return nil
 }

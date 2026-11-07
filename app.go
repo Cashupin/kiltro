@@ -2,8 +2,6 @@ package main
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"os"
 
 	"github.com/wailsapp/wails/v2/pkg/options"
@@ -174,9 +172,7 @@ func (a *App) GetDevWarning() string {
 		return ""
 	}
 	root, _ := config.AppRoot()
-	return "Modo desarrollo sin KILTRO_ROOT: Kiltro está usando " + root +
-		" como carpeta de la app (ahí no hay bin, www ni data). Cierra wails dev y levántalo así, desde la carpeta del proyecto:\n" +
-		`$env:KILTRO_ROOT = "$PWD\runtime"; wails dev`
+	return i18n.T("dev.warning", "root", root)
 }
 
 // GetServices devuelve el estado de todos los servicios.
@@ -263,7 +259,7 @@ func (a *App) OpenAdminer() error {
 	names := map[string]string{"php": "PHP", "mysql": "MySQL", "nginx": "Nginx"}
 	for _, name := range []string{"php", "mysql", "nginx"} {
 		if err := a.manager.Start(name); err != nil { // si ya corre, no hace nada
-			return fmt.Errorf("no se pudo iniciar %s para abrir el gestor: %w", names[name], err)
+			return i18n.Wrap(err, "adminer.startFailed", "name", names[name])
 		}
 	}
 	// Puede mostrar el aviso de UAC (solo si faltaba adminer.test en el hosts).
@@ -471,7 +467,7 @@ func (a *App) ready() error {
 		return a.initErr
 	}
 	if a.manager == nil {
-		return errors.New("la app todavía no terminó de iniciar")
+		return i18n.Err("err.notReady")
 	}
 	return nil
 }

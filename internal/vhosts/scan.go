@@ -4,7 +4,7 @@
 package vhosts
 
 import (
-	"fmt"
+	"kiltro/internal/i18n"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -53,7 +53,7 @@ func Scan(wwwDir string) ([]Site, []Skipped, error) {
 		if os.IsNotExist(err) {
 			return nil, nil, nil // sin carpeta www = sin sitios
 		}
-		return nil, nil, fmt.Errorf("no se pudo leer %s: %w", wwwDir, err)
+		return nil, nil, i18n.Wrap(err, "err.read", "path", wwwDir)
 	}
 
 	var sites []Site
@@ -75,11 +75,11 @@ func Scan(wwwDir string) ([]Site, []Skipped, error) {
 			continue
 		}
 		if tool, reserved := Reserved[name]; reserved {
-			skipped = append(skipped, Skipped{folder, fmt.Sprintf("el nombre %s%s está reservado para %s", name, TLD, tool)})
+			skipped = append(skipped, Skipped{folder, i18n.T("vhosts.reserved", "domain", name+TLD, "tool", tool)})
 			continue
 		}
 		if other, dup := seen[name]; dup {
-			skipped = append(skipped, Skipped{folder, fmt.Sprintf("choca con la carpeta %q (ambas serían %s%s)", other, name, TLD)})
+			skipped = append(skipped, Skipped{folder, i18n.T("vhosts.clash", "other", other, "domain", name+TLD)})
 			continue
 		}
 		seen[name] = folder
@@ -128,13 +128,13 @@ func fileExists(path string) bool {
 func CheckNewName(name string) (string, error) {
 	n := normalizeName(strings.TrimSpace(name))
 	if n == "" {
-		return "", fmt.Errorf("escribe un nombre para el sitio")
+		return "", i18n.Err("vhosts.emptyName")
 	}
 	if !validName.MatchString(n) {
-		return "", fmt.Errorf("%q no sirve como dominio: usa letras, números y guiones (sin puntos ni tildes)", name)
+		return "", i18n.Err("vhosts.badName", "name", name)
 	}
 	if tool, reserved := Reserved[n]; reserved {
-		return "", fmt.Errorf("el nombre %s%s está reservado para %s", n, TLD, tool)
+		return "", i18n.Err("vhosts.reserved", "domain", n+TLD, "tool", tool)
 	}
 	return n, nil
 }

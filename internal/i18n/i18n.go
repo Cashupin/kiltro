@@ -17,6 +17,7 @@ package i18n
 import (
 	"embed"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"sync"
@@ -110,6 +111,30 @@ func T(key string, args ...any) string {
 	}
 	return text
 }
+
+// Err crea un error con el texto de la clave (en el idioma en uso).
+//
+//	return i18n.Err("vhosts.emptyName")
+func Err(key string, args ...any) error {
+	return errors.New(T(key, args...))
+}
+
+// Wrap crea un error con el texto de la clave, donde {err} es el mensaje de
+// err. El error original queda "adentro" (Unwrap), así errors.Is/As siguen
+// funcionando igual que con fmt.Errorf("...: %w", err).
+//
+//	return i18n.Wrap(err, "err.write", "path", archivo)   // "no se pudo escribir X: <err>"
+func Wrap(err error, key string, args ...any) error {
+	return &wrapped{msg: T(key, append(args, "err", err)...), err: err}
+}
+
+type wrapped struct {
+	msg string
+	err error
+}
+
+func (w *wrapped) Error() string { return w.msg }
+func (w *wrapped) Unwrap() error { return w.err }
 
 func isSupported(lang string) bool {
 	for _, l := range Supported {

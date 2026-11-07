@@ -1,7 +1,7 @@
 package services
 
 import (
-	"fmt"
+	"kiltro/internal/i18n"
 	"os"
 	"path/filepath"
 
@@ -45,7 +45,7 @@ func writeShims() (string, error) {
 	phpDir := config.Path("bin", "php", v.Name)
 	phpExe := filepath.Join(phpDir, "php.exe")
 	if _, err := os.Stat(phpExe); err != nil {
-		return "", fmt.Errorf("la versión %s no trae php.exe", v.Name)
+		return "", i18n.Err("shims.noPhpExe", "name", v.Name)
 	}
 	// El mismo php.ini que usa php-cgi (lo crea si falta, con las extensiones de Laravel).
 	if _, err := ensurePhpIni(phpDir); err != nil {
@@ -55,7 +55,7 @@ func writeShims() (string, error) {
 	dir := shimsDir()
 	confDir := filepath.Join(dir, "conf.d")
 	if err := os.MkdirAll(confDir, 0o755); err != nil {
-		return "", fmt.Errorf("no se pudo crear %s: %w", confDir, err)
+		return "", i18n.Wrap(err, "err.create", "path", confDir)
 	}
 	ini := "; Generado por Kiltro (se reescribe solo).\n" +
 		"extension_dir=\"" + filepath.Join(phpDir, "ext") + "\"\n"
@@ -93,7 +93,7 @@ func writeIfChanged(path, content string) error {
 		return nil
 	}
 	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
-		return fmt.Errorf("no se pudo escribir %s: %w", path, err)
+		return i18n.Wrap(err, "err.write", "path", path)
 	}
 	return nil
 }
@@ -135,7 +135,7 @@ func (m *ServiceManager) AddShimsToPath() error {
 	}
 	added, err := userpath.Add(shimsDir())
 	if err != nil {
-		return fmt.Errorf("no se pudo modificar el PATH del usuario: %w", err)
+		return i18n.Wrap(err, "shims.pathFailed")
 	}
 	if added {
 		m.env.Log.Printf("[shims] %s agregado al PATH del usuario (php = %s)", shimsDir(), name)
@@ -151,7 +151,7 @@ func (m *ServiceManager) RemoveShimsFromPath() error {
 
 	removed, err := userpath.Remove(shimsDir())
 	if err != nil {
-		return fmt.Errorf("no se pudo modificar el PATH del usuario: %w", err)
+		return i18n.Wrap(err, "shims.pathFailed")
 	}
 	if removed {
 		m.env.Log.Printf("[shims] %s quitado del PATH del usuario", shimsDir())

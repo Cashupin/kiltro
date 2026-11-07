@@ -1,7 +1,7 @@
 package procutil
 
 import (
-	"fmt"
+	"kiltro/internal/i18n"
 	"os/exec"
 	"syscall"
 	"unsafe"
@@ -45,7 +45,7 @@ func start(job *Job, cmd *exec.Cmd, hide bool) error {
 	cmd.SysProcAttr.CreationFlags |= windows.CREATE_NO_WINDOW | windows.CREATE_SUSPENDED
 
 	if err := cmd.Start(); err != nil {
-		return fmt.Errorf("no se pudo iniciar %s: %w", cmd.Path, err)
+		return i18n.Wrap(err, "proc.startFailed", "path", cmd.Path)
 	}
 	pid := cmd.Process.Pid
 
@@ -59,7 +59,7 @@ func start(job *Job, cmd *exec.Cmd, hide bool) error {
 	if err := resumeProcess(pid); err != nil {
 		_ = cmd.Process.Kill()
 		_ = cmd.Wait()
-		return fmt.Errorf("no se pudo reanudar %s (PID %d): %w", cmd.Path, pid, err)
+		return i18n.Wrap(err, "proc.resumeFailed", "path", cmd.Path, "pid", pid)
 	}
 	return nil
 }
@@ -98,7 +98,7 @@ func resumeProcess(pid int) error {
 	}
 
 	if resumed == 0 {
-		return fmt.Errorf("no se encontró ningún hilo del proceso")
+		return i18n.Err("proc.noThread")
 	}
 	return nil
 }

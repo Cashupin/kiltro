@@ -2,6 +2,7 @@ package services
 
 import (
 	"fmt"
+	"kiltro/internal/i18n"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -93,8 +94,8 @@ func PHPVersions() []PHPVersion {
 //     la carpeta elegida), para dejarlo en el log.
 func selectedPHP(list []PHPVersion) (v PHPVersion, warning string, err error) {
 	if len(list) == 0 {
-		return v, "", fmt.Errorf("no se encontró PHP: se esperaba %s",
-			config.Path("bin", "php", "php-<versión>", "php-cgi.exe"))
+		return v, "", i18n.Err("err.notFound", "what", "PHP",
+			"path", config.Path("bin", "php", "php-<versión>", "php-cgi.exe"))
 	}
 	latest := list[len(list)-1]
 
@@ -111,7 +112,7 @@ func selectedPHP(list []PHPVersion) (v PHPVersion, warning string, err error) {
 			return x, "", nil
 		}
 	}
-	return latest, fmt.Sprintf("la versión elegida (%s) ya no está en bin\\php; se usa %s", cfg.PHP, latest.Name), nil
+	return latest, i18n.T("php.versionGone", "chosen", cfg.PHP, "used", latest.Name), nil
 }
 
 // phpCgiExe devuelve el php-cgi.exe de la versión elegida (y un aviso, si
@@ -123,7 +124,7 @@ func phpCgiExe() (exe, warning string, err error) {
 	}
 	exe = config.Path("bin", "php", v.Name, "php-cgi.exe")
 	if _, err := os.Stat(exe); err != nil {
-		return "", "", fmt.Errorf("no se encontró %s: %w", exe, err)
+		return "", "", i18n.Wrap(err, "err.notFound", "what", "php-cgi.exe", "path", exe)
 	}
 	return exe, warning, nil
 }
@@ -138,7 +139,7 @@ func savePHPVersion(name string) error {
 		}
 	}
 	if !found {
-		return fmt.Errorf("no existe la versión de PHP %q en bin\\php", name)
+		return i18n.Err("php.versionMissing", "name", name)
 	}
 	return config.Update(func(s *config.Settings) { s.PHP = name })
 }

@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/pem"
 	"errors"
-	"fmt"
+	"kiltro/internal/i18n"
 	"os"
 	"path/filepath"
 	"time"
@@ -47,7 +47,7 @@ func CreateCA(job *procutil.Job) error {
 	}
 	cert, key := Files("localhost")
 	if out, err := run(job, exe, false, 30*time.Second, "-cert-file", cert, "-key-file", key, "localhost"); err != nil {
-		return fmt.Errorf("mkcert no pudo crear la CA: %s", out)
+		return i18n.Err("certs.caFailed", "out", out)
 	}
 	return nil
 }
@@ -61,7 +61,7 @@ func readCA(pemFile string) ([]byte, error) {
 	}
 	block, _ := pem.Decode(data)
 	if block == nil || block.Type != "CERTIFICATE" {
-		return nil, fmt.Errorf("%s no es un certificado PEM", pemFile)
+		return nil, i18n.Err("certs.notPem", "path", pemFile)
 	}
 	return block.Bytes, nil
 }
@@ -132,17 +132,17 @@ func AddToMachine() error {
 	}
 	ctx, err := windows.CertCreateCertificateContext(windows.X509_ASN_ENCODING|windows.PKCS_7_ASN_ENCODING, &der[0], uint32(len(der)))
 	if err != nil {
-		return fmt.Errorf("certificado inválido: %w", err)
+		return i18n.Wrap(err, "certs.invalid")
 	}
 	defer windows.CertFreeCertificateContext(ctx)
 
 	store, err := openRoot(windows.CERT_SYSTEM_STORE_LOCAL_MACHINE, false)
 	if err != nil {
-		return fmt.Errorf("no se pudo abrir el almacén de la máquina (¿sin admin?): %w", err)
+		return i18n.Wrap(err, "certs.storeOpen")
 	}
 	defer windows.CertCloseStore(store, 0)
 	if err := windows.CertAddCertificateContextToStore(store, ctx, windows.CERT_STORE_ADD_REPLACE_EXISTING, nil); err != nil {
-		return fmt.Errorf("no se pudo agregar la CA al almacén de la máquina: %w", err)
+		return i18n.Wrap(err, "certs.storeAdd")
 	}
 	return nil
 }
@@ -159,7 +159,7 @@ func RemoveFromMachine(pemFile string) error {
 	}
 	store, err := openRoot(windows.CERT_SYSTEM_STORE_LOCAL_MACHINE, false)
 	if err != nil {
-		return fmt.Errorf("no se pudo abrir el almacén de la máquina (¿sin admin?): %w", err)
+		return i18n.Wrap(err, "certs.storeOpen")
 	}
 	defer windows.CertCloseStore(store, 0)
 	ctx := findIn(store, der)
@@ -168,7 +168,7 @@ func RemoveFromMachine(pemFile string) error {
 	}
 	// CertDeleteCertificateFromStore libera el contexto que recibe.
 	if err := windows.CertDeleteCertificateFromStore(ctx); err != nil {
-		return fmt.Errorf("no se pudo quitar la CA del almacén de la máquina: %w", err)
+		return i18n.Wrap(err, "certs.storeRemove")
 	}
 	return nil
 }

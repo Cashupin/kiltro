@@ -3,7 +3,7 @@
 package procutil
 
 import (
-	"fmt"
+	"kiltro/internal/i18n"
 	"unsafe"
 
 	"golang.org/x/sys/windows"
@@ -33,7 +33,7 @@ func NewJob() (*Job, error) {
 	// solo Kiltro lo mantiene vivo.
 	h, err := windows.CreateJobObject(nil, nil)
 	if err != nil {
-		return nil, fmt.Errorf("no se pudo crear el Job Object: %w", err)
+		return nil, i18n.Wrap(err, "job.create")
 	}
 
 	// Configurar el límite KILL_ON_JOB_CLOSE. Windows exige pasarlo dentro de
@@ -49,7 +49,7 @@ func NewJob() (*Job, error) {
 	)
 	if err != nil {
 		windows.CloseHandle(h)
-		return nil, fmt.Errorf("no se pudo configurar el Job Object: %w", err)
+		return nil, i18n.Wrap(err, "job.config")
 	}
 
 	return &Job{handle: h}, nil
@@ -62,12 +62,12 @@ func (j *Job) Assign(pid int) error {
 
 	p, err := windows.OpenProcess(access, false, uint32(pid))
 	if err != nil {
-		return fmt.Errorf("no se pudo abrir el proceso %d: %w", pid, err)
+		return i18n.Wrap(err, "job.open", "pid", pid)
 	}
 	defer windows.CloseHandle(p)
 
 	if err := windows.AssignProcessToJobObject(j.handle, p); err != nil {
-		return fmt.Errorf("no se pudo asignar el proceso %d al Job: %w", pid, err)
+		return i18n.Wrap(err, "job.assign", "pid", pid)
 	}
 	return nil
 }

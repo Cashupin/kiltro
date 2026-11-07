@@ -1,8 +1,6 @@
 package main
 
 import (
-	"fmt"
-
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 
 	"kiltro/internal/config"
@@ -34,7 +32,7 @@ func (a *App) GetI18n() I18nView {
 // config.json y avisa a la interfaz y a la bandeja. No hace falta reiniciar.
 func (a *App) SetLanguage(pref string) (I18nView, error) {
 	if pref != "" && i18n.Resolve(pref) != pref {
-		return a.GetI18n(), fmt.Errorf("idioma no disponible: %q", pref)
+		return a.GetI18n(), i18n.Err("err.unsupportedLang", "lang", pref)
 	}
 	if err := config.Update(func(s *config.Settings) { s.Lang = pref }); err != nil {
 		return a.GetI18n(), err

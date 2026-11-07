@@ -2,7 +2,7 @@ package hosts
 
 import (
 	"errors"
-	"fmt"
+	"kiltro/internal/i18n"
 	"os"
 	"path/filepath"
 	"sort"
@@ -35,7 +35,12 @@ const (
 )
 
 // ErrCancelled se devuelve si el usuario rechazó el aviso de UAC.
-var ErrCancelled = errors.New("actualización del hosts cancelada (no se aceptó el permiso de administrador)")
+// Es un tipo (no errors.New) para que el texto salga en el idioma en uso.
+var ErrCancelled error = cancelledError{}
+
+type cancelledError struct{}
+
+func (cancelledError) Error() string { return i18n.T("hosts.cancelled") }
 
 // RequestUpdate pide (con UAC) que el bloque de Kiltro del hosts quede con esos
 // dominios. workDir es donde se dejan el archivo pendiente y los backups (etc/).
@@ -43,7 +48,7 @@ var ErrCancelled = errors.New("actualización del hosts cancelada (no se aceptó
 func RequestUpdate(domains []string, workDir string) error {
 	for _, d := range domains {
 		if !ValidDomain(d) {
-			return fmt.Errorf("dominio inválido para el hosts: %q", d)
+			return i18n.Err("hosts.badDomain", "domain", d)
 		}
 	}
 
@@ -55,7 +60,7 @@ func RequestUpdate(domains []string, workDir string) error {
 	_ = os.Remove(result)
 
 	if err := os.WriteFile(pending, []byte(strings.Join(domains, "\n")+"\n"), 0o644); err != nil {
-		return fmt.Errorf("no se pudo escribir %s: %w", pending, err)
+		return i18n.Wrap(err, "err.write", "path", pending)
 	}
 
 	exe, err := os.Executable()
@@ -79,9 +84,9 @@ func RequestUpdate(domains []string, workDir string) error {
 	case readErr == nil && strings.TrimSpace(string(msg)) == "ok":
 		return nil
 	case readErr == nil:
-		return fmt.Errorf("no se pudo escribir el hosts: %s", strings.TrimSpace(string(msg)))
+		return i18n.Err("hosts.writeFailed", "err", strings.TrimSpace(string(msg)))
 	default:
-		return fmt.Errorf("el proceso elevado terminó (código %d) sin dejar resultado", exitCode)
+		return i18n.Err("hosts.noResult", "code", exitCode)
 	}
 }
 
@@ -107,7 +112,7 @@ func RunElevated(pendingFile string) int {
 func applyPending(pendingFile, hostsPath, backupDir string) error {
 	data, err := os.ReadFile(pendingFile)
 	if err != nil {
-		return fmt.Errorf("no se pudo leer %s: %w", pendingFile, err)
+		return i18n.Wrap(err, "err.read", "path", pendingFile)
 	}
 	var domains []string
 	for _, line := range strings.Split(string(data), "\n") {
@@ -118,7 +123,7 @@ func applyPending(pendingFile, hostsPath, backupDir string) error {
 		// Se valida OTRA VEZ aquí, en el proceso con permisos de admin:
 		// es la única validación que de verdad importa.
 		if !ValidDomain(d) {
-			return fmt.Errorf("dominio inválido, no se escribe nada: %q", d)
+			return i18n.Err("hosts.badDomainAbort", "domain", d)
 		}
 		domains = append(domains, d)
 	}
@@ -137,7 +142,7 @@ func writeBlock(domains []string, hostsPath, backupDir string) error {
 	// Releer el hosts actual (puede haber cambiado desde que la app lo leyó).
 	raw, err := os.ReadFile(hostsPath)
 	if err != nil {
-		return fmt.Errorf("no se pudo leer el hosts: %w", err)
+		return i18n.Wrap(err, "hosts.readFailed")
 	}
 	content := string(raw)
 
@@ -150,13 +155,13 @@ func writeBlock(domains []string, hostsPath, backupDir string) error {
 	}
 
 	if err := backup(raw, backupDir); err != nil {
-		return fmt.Errorf("no se pudo hacer el backup del hosts (no se modificó): %w", err)
+		return i18n.Wrap(err, "hosts.backupFailed")
 	}
 
 	// Se sobrescribe en el lugar (no con "escribir temporal + renombrar") para
 	// conservar los permisos (ACL) originales del archivo hosts.
 	if err := os.WriteFile(hostsPath, []byte(updated), 0o644); err != nil {
-		return fmt.Errorf("no se pudo escribir el hosts: %w", err)
+		return i18n.Wrap(err, "hosts.writeFailed")
 	}
 	return nil
 }

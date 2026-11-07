@@ -2,6 +2,7 @@ package services
 
 import (
 	"fmt"
+	"kiltro/internal/i18n"
 	"os"
 	"path/filepath"
 	"sort"
@@ -74,7 +75,7 @@ include '%s';
 
 	index := filepath.Join(dir, "index.php")
 	if err := os.WriteFile(index, []byte(wrapper), 0o644); err != nil {
-		return nil, fmt.Errorf("no se pudo escribir %s: %w", index, err)
+		return nil, i18n.Wrap(err, "err.write", "path", index)
 	}
 
 	if err := writeAdminerTheme(dir); err != nil {
@@ -110,10 +111,10 @@ func writeAdminerTheme(dir string) error {
 	dark := string(light) + "\n" + string(darkColors)
 
 	if err := os.WriteFile(filepath.Join(dir, "adminer.css"), light, 0o644); err != nil {
-		return fmt.Errorf("no se pudo escribir el tema de Adminer: %w", err)
+		return i18n.Wrap(err, "adminer.theme")
 	}
 	if err := os.WriteFile(filepath.Join(dir, "adminer-dark.css"), []byte(dark), 0o644); err != nil {
-		return fmt.Errorf("no se pudo escribir el tema de Adminer: %w", err)
+		return i18n.Wrap(err, "adminer.theme")
 	}
 	return nil
 }

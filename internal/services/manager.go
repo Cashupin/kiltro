@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"kiltro/internal/i18n"
 	"log"
 	"os"
 	"os/exec"
@@ -56,11 +57,11 @@ type ServiceManager struct {
 // registra los servicios. onChange se llama cada vez que cambia algún estado.
 func NewManager(onChange func()) (*ServiceManager, error) {
 	if err := os.MkdirAll(config.Path("logs"), 0o755); err != nil {
-		return nil, fmt.Errorf("no se pudo crear la carpeta logs: %w", err)
+		return nil, i18n.Wrap(err, "err.create", "path", config.Path("logs"))
 	}
 	f, err := os.OpenFile(config.Path("logs", "kiltro.log"), os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o644)
 	if err != nil {
-		return nil, fmt.Errorf("no se pudo abrir logs/kiltro.log: %w", err)
+		return nil, i18n.Wrap(err, "err.open", "path", config.Path("logs", "kiltro.log"))
 	}
 	// Al archivo y a la consola (la consola solo se ve en `wails dev`).
 	logger := log.New(io.MultiWriter(f, os.Stderr), "", log.LstdFlags)
@@ -109,7 +110,7 @@ func (m *ServiceManager) get(name string) (Service, error) {
 			return s, nil
 		}
 	}
-	return nil, fmt.Errorf("servicio desconocido: %q", name)
+	return nil, i18n.Err("err.unknownService", "name", name)
 }
 
 // Start arranca un servicio, verificando antes que sus puertos estén libres.
@@ -355,7 +356,7 @@ func (m *ServiceManager) site(name string) (vhosts.Site, error) {
 			return s, nil
 		}
 	}
-	return vhosts.Site{}, fmt.Errorf("no existe el sitio %q", name)
+	return vhosts.Site{}, i18n.Err("err.unknownSite", "name", name)
 }
 
 // OpenSiteFolder abre la carpeta del proyecto en el Explorador.
@@ -398,12 +399,12 @@ func (m *ServiceManager) CreateSite(name string) (string, error) {
 	if entries, err := os.ReadDir(www); err == nil {
 		for _, e := range entries {
 			if strings.EqualFold(e.Name(), n) || (e.IsDir() && vhosts.NormalizedName(e.Name()) == n) {
-				return "", fmt.Errorf("ya existe la carpeta %s (sería %s%s)", filepath.Join(www, e.Name()), n, vhosts.TLD)
+				return "", i18n.Err("sites.exists", "path", filepath.Join(www, e.Name()), "domain", n+vhosts.TLD)
 			}
 		}
 	}
 	if err := os.Mkdir(dir, 0o755); err != nil {
-		return "", fmt.Errorf("no se pudo crear %s: %w", dir, err)
+		return "", i18n.Wrap(err, "err.create", "path", dir)
 	}
 	m.env.Log.Printf("[sitios] carpeta creada: %s", dir)
 	if _, err := m.ReloadSites(); err != nil {
@@ -559,7 +560,7 @@ func (m *ServiceManager) SaveSettings(next config.Settings) ([]string, error) {
 				continue
 			}
 			if err := procutil.CheckPortFree(p); err != nil {
-				return nil, fmt.Errorf("no se guardó la configuración: %w", err)
+				return nil, i18n.Wrap(err, "settings.notSaved")
 			}
 		}
 	}
@@ -644,13 +645,13 @@ func removeMachineCAElevated() error {
 	}
 	code, err := procutil.RunElevatedAndWait(exe, `--remove-ca "`+certs.CAFile()+`"`, 2*time.Minute)
 	if errors.Is(err, procutil.ErrCancelled) {
-		return errors.New("no se quitó la CA: no se aceptó el permiso de administrador")
+		return i18n.Err("ca.removeCancelled")
 	}
 	if err != nil {
 		return err
 	}
 	if code != 0 || certs.TrustedByMachine() {
-		return fmt.Errorf("no se pudo quitar la CA del almacén de la máquina (código %d, ver logs\\kiltro.log)", code)
+		return i18n.Err("ca.removeFailed", "code", code)
 	}
 	return nil
 }

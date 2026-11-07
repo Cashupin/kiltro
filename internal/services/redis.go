@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"kiltro/internal/i18n"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -136,8 +137,8 @@ func (r *Redis) Start() error {
 		}
 		if time.Now().After(deadline) {
 			_ = r.Stop()
-			return r.fail(fmt.Errorf("Redis no empezó a escuchar en el puerto %d tras %s; revisa %s",
-				port, redisStartTimeout, redisLog()))
+			return r.fail(i18n.Err("err.notListeningLog", "name", "Redis",
+				"port", port, "timeout", redisStartTimeout, "log", redisLog()))
 		}
 		time.Sleep(100 * time.Millisecond)
 	}
@@ -206,7 +207,7 @@ func (r *Redis) Stop() error {
 	case <-exited:
 		return nil
 	case <-time.After(5 * time.Second):
-		return r.fail(fmt.Errorf("no se pudo detener Redis (PID %d)", cmd.Process.Pid))
+		return r.fail(i18n.Err("err.stopFailed", "name", "Redis", "pid", cmd.Process.Pid))
 	}
 }
 
@@ -217,8 +218,8 @@ func redisBinDir() (string, error) {
 		matches = append(matches, direct)
 	}
 	if len(matches) == 0 {
-		return "", fmt.Errorf("no se encontró Redis: se esperaba %s",
-			config.Path("bin", "redis", "redis-<versión>", "redis-server.exe"))
+		return "", i18n.Err("err.notFound", "what", "Redis",
+			"path", config.Path("bin", "redis", "redis-<versión>", "redis-server.exe"))
 	}
 	sort.Strings(matches)
 	return filepath.Dir(matches[len(matches)-1]), nil
@@ -245,7 +246,7 @@ loglevel notice
 databases 16
 `, port, slash(redisDataDir()), slash(redisLog()))
 	if err := os.WriteFile(redisConf(), []byte(conf), 0o644); err != nil {
-		return fmt.Errorf("no se pudo escribir %s: %w", redisConf(), err)
+		return i18n.Wrap(err, "err.write", "path", redisConf())
 	}
 	return nil
 }
