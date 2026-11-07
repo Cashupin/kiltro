@@ -11,6 +11,7 @@ export namespace config {
 	    phpWorkers: number;
 	    lan?: boolean;
 	    www?: string;
+	    lang?: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new Settings(source);
@@ -28,6 +29,7 @@ export namespace config {
 	        this.phpWorkers = source["phpWorkers"];
 	        this.lan = source["lan"];
 	        this.www = source["www"];
+	        this.lang = source["lang"];
 	    }
 	}
 
@@ -74,6 +76,24 @@ export namespace logview {
 
 export namespace main {
 	
+	export class I18nView {
+	    lang: string;
+	    pref: string;
+	    supported: string[];
+	    messages: Record<string, string>;
+	
+	    static createFrom(source: any = {}) {
+	        return new I18nView(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.lang = source["lang"];
+	        this.pref = source["pref"];
+	        this.supported = source["supported"];
+	        this.messages = source["messages"];
+	    }
+	}
 	export class SettingsView {
 	    settings: config.Settings;
 	    defaultWww: string;

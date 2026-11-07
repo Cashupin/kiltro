@@ -512,7 +512,7 @@ func (m *ServiceManager) SaveSettings(next config.Settings) ([]string, error) {
 
 	old, _ := config.Load()
 	// Lo que no se edita en esta pantalla se conserva tal cual.
-	next.PHP, next.SSL = old.PHP, old.SSL
+	next.PHP, next.SSL, next.Lang = old.PHP, old.SSL, old.Lang // se cambian con sus propios botones
 	if err := next.Validate(); err != nil {
 		return nil, err
 	}

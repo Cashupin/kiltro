@@ -4,6 +4,7 @@
   import { GetLogs, ReadLog, ClearLog, OpenLogsFolder } from '../wailsjs/go/main/App.js'
   import { ClipboardSetText } from '../wailsjs/runtime/runtime.js'
   import type { logview } from '../wailsjs/go/models'
+  import { t } from './i18n'
 
   let logs: logview.Log[] = []
   let selected = 'kiltro'
@@ -91,26 +92,26 @@
   <div class="toolbar">
     <select bind:value={selected} on:change={changeLog}>
       {#each logs as l (l.id)}
-        <option value={l.id}>{l.label}</option>
+        <option value={l.id}>{$t('logs.name.' + l.id)}</option>
       {/each}
     </select>
-    <label class="check"><input type="checkbox" bind:checked={follow} /> Actualizar solo</label>
-    <button class="ghost" on:click={load}>↻ Recargar</button>
-    <button on:click={copy} disabled={!result || result.lines.length === 0}>{copied ? 'Copiado ✓' : 'Copiar'}</button>
-    <button class="ghost" on:click={() => OpenLogsFolder()}>Abrir carpeta</button>
+    <label class="check"><input type="checkbox" bind:checked={follow} /> {$t('logs.follow')}</label>
+    <button class="ghost" on:click={load}>{$t('common.reload')}</button>
+    <button on:click={copy} disabled={!result || result.lines.length === 0}>{copied ? $t('logs.copied') : $t('logs.copy')}</button>
+    <button class="ghost" on:click={() => OpenLogsFolder()}>{$t('logs.openFolder')}</button>
     {#if !confirmClear}
-      <button on:click={() => (confirmClear = true)} disabled={!result || result.size === 0}>Vaciar</button>
+      <button on:click={() => (confirmClear = true)} disabled={!result || result.size === 0}>{$t('logs.clear')}</button>
     {:else}
-      <span class="warn">¿Vaciar este log?</span>
-      <button class="danger" on:click={clear}>Sí, vaciar</button>
-      <button on:click={() => (confirmClear = false)}>Cancelar</button>
+      <span class="warn">{$t('logs.confirmClear')}</span>
+      <button class="danger" on:click={clear}>{$t('logs.yesClear')}</button>
+      <button on:click={() => (confirmClear = false)}>{$t('common.cancel')}</button>
     {/if}
   </div>
 
   {#if current}
     <p class="muted small">
       <code>{current.path}</code>
-      {#if result?.exists} — {sizeLabel(result.size)}{#if result.truncated}, se muestran las últimas {result.lines.length} líneas{/if}{/if}
+      {#if result?.exists} — {sizeLabel(result.size)}{#if result.truncated}{$t('logs.truncated', { n: result.lines.length })}{/if}{/if}
     </p>
   {/if}
 
@@ -118,7 +119,7 @@
     <p class="error">{error}</p>
   {/if}
 
-  <pre bind:this={box}>{#if result && !result.exists}<span class="muted">Este log todavía no existe (se crea cuando el servicio arranca).</span>{:else if result && result.lines.length === 0}<span class="muted">(vacío)</span>{:else if result}{#each result.lines as line}<span class={lineClass(line)}>{line}</span>
+  <pre bind:this={box}>{#if result && !result.exists}<span class="muted">{$t('logs.notYet')}</span>{:else if result && result.lines.length === 0}<span class="muted">{$t('logs.empty')}</span>{:else if result}{#each result.lines as line}<span class={lineClass(line)}>{line}</span>
 {/each}{/if}</pre>
 </section>
 

@@ -10,6 +10,7 @@ import (
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 
 	"kiltro/internal/config"
+	"kiltro/internal/i18n"
 	"kiltro/internal/logview"
 	"kiltro/internal/procutil"
 	"kiltro/internal/services"
@@ -36,6 +37,9 @@ func NewApp(trayIcon []byte) *App {
 // startup lo llama Wails al arrancar.
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
+
+	// Idioma: el guardado en config.json, o el de Windows si es "automático".
+	i18n.SetPreference(config.Current().Lang)
 
 	// Cada vez que un servicio cambia de estado, avisamos al frontend con un
 	// evento (el frontend vuelve a pedir la lista con GetServices) y

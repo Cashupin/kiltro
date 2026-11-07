@@ -159,7 +159,7 @@ Trabajar **una etapa a la vez**. No adelantar trabajo de etapas siguientes.
     - Botón para quitarla del PATH. Avisar que las terminales ya abiertas no lo ven.
 - [x] **Etapa 10:** Instalador (NSIS, el que soporta `wails build -nsis`) y versión publicable.
   - Decidido: binarios DENTRO del instalador (funciona sin internet). Solo PHP 8.4 NTS (las demás
-    versiones, con el descargador de la Etapa 11). Sin regla de firewall (Nginx escucha en
+    versiones, con el descargador de la Etapa 12). Sin regla de firewall (Nginx escucha en
     127.0.0.1; con "red local" Windows pregunta una vez). Licencia GPL-3.0, copyright Cashupin.
     El repo tiene la receta; el instalador y el zip se suben a GitHub Releases (no al repo).
   - Instalar en una carpeta escribible sin admin (ej. `C:\kiltro`, como Laragon), NO en
@@ -179,7 +179,19 @@ Trabajar **una etapa a la vez**. No adelantar trabajo de etapas siguientes.
         proyectos y bases de datos" (desmarcada por defecto).
   - [x] 10d: `tools/release.ps1` (genera `kiltro-setup-<versión>.exe` y `kiltro-portable-<versión>.zip`),
         prueba de instalar/desinstalar en Windows Sandbox, pasos para GitHub Releases.
-- [ ] **Etapa 11:** Descargador de versiones de PHP (lista de windows.php.net, incluidas las del
+- [ ] **Etapa 11:** Multi idioma (español e inglés) y publicar la 0.1.0.
+      Decidido (2026-11-07): primero los idiomas, después hacer público el repo y publicar la
+      0.1.0; el descargador de PHP va en la 0.2.0 (Etapa 12), ya bilingüe desde el principio.
+  - Un solo catálogo por idioma (`internal/i18n/locales/es.json` y `en.json`, embebidos en el
+    exe) que usan Go (`i18n.T`) y Svelte (`$t`). Sin librerías nuevas. Idioma: automático según
+    Windows (español si Windows está en español; si no, inglés) o elegido en Configuración
+    (`"lang"` en config.json), cambia sin reiniciar. Los logs quedan en el idioma elegido.
+  - [x] 11a: Base (catálogos, `T`/`$t`, detección, selector en Configuración) + textos de las
+        3 pantallas y de la bandeja. Test: mismas claves en ambos idiomas y claves usadas existen.
+  - [ ] 11b: Mensajes del backend (errores, estados, detalles que llegan a la UI).
+  - [ ] 11c: Instalador bilingüe, `LEEME.txt` en dos idiomas, capturas en inglés para README.en.md.
+  - [ ] 11d: Publicar la 0.1.0 (release.ps1, repo público, tag y GitHub Release).
+- [ ] **Etapa 12:** Descargador de versiones de PHP (lista de windows.php.net, incluidas las del
       archivo histórico como 7.4; descarga, verifica SHA-256 y deja la carpeta en `bin/php/`).
 
 ## Forma de trabajar
@@ -194,7 +206,7 @@ Trabajar **una etapa a la vez**. No adelantar trabajo de etapas siguientes.
 
 ## Estado actual
 
-**Etapas 1 a 10 completas** (2026-11-07). Versión 0.1.0 armada (sin publicar). Siguiente: Etapa 11 (descargador de versiones de PHP).
+**Etapas 1 a 10 completas y 11a** (2026-11-07). Versión 0.1.0 armada (sin publicar). Siguiente: 11b (mensajes del backend en es/en).
 
 Notas para las próximas etapas:
 - La plantilla svelte-ts de Wails v2.17.1 trae Svelte 5: se usa `mount()` en `main.ts`, pero
@@ -308,3 +320,12 @@ Notas para las próximas etapas:
   `release.ps1` saca del paquete las carpetas que ya no están en `bins.json`.
   `tools/sandbox.ps1` abre Windows Sandbox con la versión (hay que activar la característica).
   Pasos de publicación en `docs/RELEASING.md`. Los .ps1 van en UTF-8 CON BOM (PowerShell 5.1).
+- Idiomas (11a): catálogos `internal/i18n/locales/{es,en}.json` (claves planas tipo
+  `"sites.created"`, marcadores `{domain}`). Go: `i18n.T("clave", "domain", d)`. Svelte:
+  `import { t, th, tr } from './i18n'` → `{$t('clave', {domain})}`; los textos con `<code>` van
+  con `{@html $th(...)}` (escapa los valores); `tr()` en funciones del script. Los textos los
+  manda Go (`App.GetI18n`) y `main.ts` los carga ANTES de montar la app. `App.SetLanguage`
+  guarda `lang` en config.json, emite `i18n:changed` y rehace la bandeja. Texto nuevo = clave
+  en es.json Y en.json; `go test ./internal/i18n` falla si falta una clave, si los marcadores
+  no coinciden o si el código usa una clave inexistente. Claves armadas en tiempo de ejecución
+  terminan en punto: `$t('status.' + s.status)`, `$t('logs.name.' + l.id)`.

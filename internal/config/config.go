@@ -46,6 +46,9 @@ type Settings struct {
 
 	// WWW: carpeta de proyectos. Vacía = <carpeta de la app>/www.
 	WWW string `json:"www,omitempty"`
+
+	// Lang: idioma de la interfaz. "" = automático (el de Windows), "es" o "en".
+	Lang string `json:"lang,omitempty"`
 }
 
 // mu evita que dos goroutines escriban config.json a la vez.

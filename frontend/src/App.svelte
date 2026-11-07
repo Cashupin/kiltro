@@ -12,6 +12,7 @@
   import Logs from './Logs.svelte'
   import logo from './assets/images/kiltro.svg' // mismo dibujo que el ícono del exe (build/kiltro.svg)
   import type { services, vhosts } from '../wailsjs/go/models'
+  import { t, th, tr } from './i18n'
 
   let list: services.Info[] = []
   let errorMsg: string = ''         // error general (ej. puerto ocupado)
@@ -21,7 +22,8 @@
   let sites: vhosts.Site[] = []
   let skipped: vhosts.Skipped[] = []
   let reloading = false
-  let sitesMsg = '' // resultado de "Recargar sitios"
+  let sitesMsg = '' // resultado de "Recargar sitios" (o un error)
+  let sitesMsgOk = false // true = mensaje de éxito (gris), false = error (rojo)
 
   let hostsStatus: services.HostsStatus | null = null
   let syncing = false
@@ -86,6 +88,7 @@
       await f()
     } catch (e) {
       sitesMsg = String(e)
+      sitesMsgOk = false
     }
   }
 
@@ -99,7 +102,7 @@
     try {
       const domain = await CreateSite(newName)
       createIsError = false
-      createMsg = 'Creado ' + domain + ': pon tu proyecto en su carpeta.'
+      createMsg = tr('sites.created', { domain })
       newName = ''
       creating = false
     } catch (e) {
@@ -109,14 +112,6 @@
       await refreshSites()
       await refreshHosts()
     }
-  }
-
-  const labels: Record<string, string> = {
-    stopped: 'Detenido',
-    starting: 'Iniciando…',
-    running: 'Corriendo',
-    stopping: 'Deteniendo…',
-    error: 'Error',
   }
 
   const names: Record<string, string> = {
@@ -182,6 +177,7 @@
       skipped = r.skipped ?? []
     } catch (e) {
       sitesMsg = String(e)
+      sitesMsgOk = false
     }
   }
 
@@ -214,9 +210,11 @@
     sitesMsg = ''
     try {
       await ReloadSites()
-      sitesMsg = 'Sitios recargados'
+      sitesMsg = tr('sites.reloaded')
+      sitesMsgOk = true
     } catch (e) {
       sitesMsg = String(e)
+      sitesMsgOk = false
     } finally {
       reloading = false
       await refreshSites()
@@ -316,20 +314,20 @@
       {#if list.length > 0}
         <span class="summary">
           <span class="dot {runningCount === list.length ? 'running' : runningCount > 0 ? 'warn' : ''}"></span>
-          {runningCount} de {list.length} servicios corriendo
+          {$t('top.summary', { running: runningCount, total: list.length })}
         </span>
       {/if}
     </div>
     <div class="top-actions">
-      <button class="primary" on:click={startAll} disabled={allBusy || runningCount === list.length}>▶ Iniciar todo</button>
-      <button on:click={stopAll} disabled={allBusy || runningCount === 0}>■ Detener todo</button>
+      <button class="primary" on:click={startAll} disabled={allBusy || runningCount === list.length}>{$t('top.startAll')}</button>
+      <button on:click={stopAll} disabled={allBusy || runningCount === 0}>{$t('top.stopAll')}</button>
     </div>
   </header>
 
   <nav class="tabs">
-    <button class:active={tab === 'services'} on:click={() => showTab('services')}>Servicios</button>
-    <button class:active={tab === 'logs'} on:click={() => showTab('logs')}>Logs</button>
-    <button class:active={tab === 'settings'} on:click={() => showTab('settings')}>Configuración</button>
+    <button class:active={tab === 'services'} on:click={() => showTab('services')}>{$t('tabs.services')}</button>
+    <button class:active={tab === 'logs'} on:click={() => showTab('logs')}>{$t('tabs.logs')}</button>
+    <button class:active={tab === 'settings'} on:click={() => showTab('settings')}>{$t('tabs.settings')}</button>
   </nav>
 
   <main>
@@ -349,17 +347,17 @@
 
     <!-- Servicios -->
     <section class="card">
-      <div class="card-title">Servicios</div>
+      <div class="card-title">{$t('services.title')}</div>
       {#each list as s (s.name)}
         <div class="svc">
-          <span class="dot {s.status}" title={labels[s.status] ?? s.status}></span>
+          <span class="dot {s.status}" title={$t('status.' + s.status)}></span>
           <div class="svc-name">
             <span class="name">{names[s.name] ?? s.name}</span>
             {#if s.name === 'php' && phpVersions.length > 0}
               <!-- Cambiar la versión reinicia PHP si está corriendo -->
               <select bind:value={phpChoice} on:change={changePhp}
                 disabled={switchingPhp || busy['php'] || phpVersions.length < 2}
-                title="Versión de PHP (si PHP está corriendo, se reinicia)">
+                title={$t('services.phpSelectTitle')}>
                 {#each phpVersions as v (v.name)}
                   <option value={v.name}>{phpLabel(v)}</option>
                 {/each}
@@ -368,17 +366,17 @@
           </div>
           <code class="ports">{portsLabel(s.ports)}</code>
           <span class="state {s.status}">
-            {labels[s.status] ?? s.status}{#if s.detail}<span class="muted"> · {s.detail}</span>{/if}
+            {$t('status.' + s.status)}{#if s.detail}<span class="muted"> · {s.detail}</span>{/if}
           </span>
           <div class="svc-actions">
             {#if s.name === 'mysql' && hasAdminer}
               <button class="ghost" on:click={openAdminer} disabled={openingAdminer}
-                title="Abre Adminer en el navegador (inicia PHP, MySQL y Nginx si hace falta)">
-                {openingAdminer ? 'Iniciando…' : 'Gestor BD'}
+                title={$t('services.dbManagerTitle')}>
+                {openingAdminer ? $t('services.dbStarting') : $t('services.dbManager')}
               </button>
             {/if}
             <button class={isOn(s) ? '' : 'outline'} on:click={() => toggle(s)} disabled={busy[s.name] || allBusy}>
-              {isOn(s) ? '■ Detener' : '▶ Iniciar'}
+              {isOn(s) ? $t('services.stop') : $t('services.start')}
             </button>
           </div>
         </div>
@@ -391,21 +389,21 @@
     <!-- Sitios -->
     <section class="card">
       <div class="card-title">
-        Sitios <span class="count">{projects.length}</span>
+        {$t('sites.title')} <span class="count">{projects.length}</span>
         <span class="spacer"></span>
-        <button class="ghost small" on:click={reloadSites} disabled={reloading} title="Volver a leer la carpeta de proyectos">
-          {reloading ? 'Recargando…' : '↻ Recargar'}
+        <button class="ghost small" on:click={reloadSites} disabled={reloading} title={$t('sites.reloadTitle')}>
+          {reloading ? $t('sites.reloading') : $t('common.reload')}
         </button>
-        <button class="small primary" on:click={() => { creating = !creating; createMsg = '' }}>＋ Nuevo sitio</button>
+        <button class="small primary" on:click={() => { creating = !creating; createMsg = '' }}>{$t('sites.new')}</button>
       </div>
 
       {#if creating}
         <form class="newsite" on:submit|preventDefault={createSite}>
-          <input bind:value={newName} placeholder="nombre (ej. mi-tienda)" />
+          <input bind:value={newName} placeholder={$t('sites.namePlaceholder')} />
           <span class="muted">{newSiteDomain}</span>
           <span class="spacer"></span>
-          <button type="submit" class="primary small" disabled={!newName.trim()}>Crear</button>
-          <button type="button" class="ghost small" on:click={() => (creating = false)}>Cancelar</button>
+          <button type="submit" class="primary small" disabled={!newName.trim()}>{$t('sites.create')}</button>
+          <button type="button" class="ghost small" on:click={() => (creating = false)}>{$t('common.cancel')}</button>
         </form>
       {/if}
       {#if createMsg}
@@ -413,7 +411,7 @@
       {/if}
 
       {#if projects.length === 0}
-        <p class="msg muted">No hay proyectos. Pulsa "Nuevo sitio" o crea una carpeta dentro de la carpeta de proyectos y pulsa "Recargar".</p>
+        <p class="msg muted">{$t('sites.empty')}</p>
       {:else}
         {#each projects as site (site.name)}
           <div class="site">
@@ -423,19 +421,19 @@
               <code class="path" title={site.root}>{site.root}</code>
             </div>
             <div class="site-actions">
-              <button class="ghost small" on:click={() => openSite(site.domain)}>Abrir</button>
-              <button class="ghost small" on:click={() => siteAction(() => OpenSiteFolder(site.name))}>Carpeta</button>
-              <button class="ghost small" on:click={() => siteAction(() => OpenSiteTerminal(site.name))}>Terminal</button>
+              <button class="ghost small" on:click={() => openSite(site.domain)}>{$t('sites.open')}</button>
+              <button class="ghost small" on:click={() => siteAction(() => OpenSiteFolder(site.name))}>{$t('sites.folder')}</button>
+              <button class="ghost small" on:click={() => siteAction(() => OpenSiteTerminal(site.name))}>{$t('sites.terminal')}</button>
             </div>
           </div>
         {/each}
       {/if}
 
       {#each skipped as sk}
-        <p class="msg warn">Ignorada <code>{sk.folder}</code>: {sk.reason}</p>
+        <p class="msg warn">{@html $th('sites.skipped', { folder: sk.folder, reason: sk.reason })}</p>
       {/each}
       {#if sitesMsg}
-        <p class="msg {sitesMsg === 'Sitios recargados' ? 'muted' : 'error'}">{sitesMsg}</p>
+        <p class="msg {sitesMsgOk ? 'muted' : 'error'}">{sitesMsg}</p>
       {/if}
     </section>
 
@@ -445,12 +443,12 @@
         <div class="card status">
           <div class="status-head">
             <span class="dot {hostsStatus.upToDate ? 'ok' : 'warn'}"></span>
-            <span class="label">Archivo hosts</span>
-            <span class={hostsStatus.upToDate ? 'ok' : 'warn'}>{hostsStatus.upToDate ? 'al día' : 'desactualizado'}</span>
+            <span class="label">{$t('hosts.title')}</span>
+            <span class={hostsStatus.upToDate ? 'ok' : 'warn'}>{hostsStatus.upToDate ? $t('hosts.upToDate') : $t('hosts.outdated')}</span>
             <span class="spacer"></span>
             {#if !hostsStatus.upToDate}
               <button class="small" on:click={syncHosts} disabled={syncing}>
-                {syncing ? 'Esperando permiso…' : 'Actualizar'}
+                {syncing ? $t('hosts.waiting') : $t('hosts.update')}
               </button>
             {/if}
           </div>
@@ -462,16 +460,16 @@
         <div class="card status">
           <div class="status-head">
             <span class="dot {ssl.enabled ? 'ok' : ''}"></span>
-            <span class="label">HTTPS</span>
-            <span class={ssl.enabled ? 'ok' : 'muted'}>{ssl.enabled ? 'activado' : 'desactivado'}</span>
+            <span class="label">{$t('ssl.title')}</span>
+            <span class={ssl.enabled ? 'ok' : 'muted'}>{ssl.enabled ? $t('ssl.on') : $t('ssl.off')}</span>
             <span class="spacer"></span>
             {#if ssl.available}
               <button class="small" on:click={toggleSsl} disabled={sslBusy}
-                title={ssl.enabled ? 'Volver a solo http://' : 'Windows pedirá confirmar que confías en el certificado de Kiltro'}>
+                title={ssl.enabled ? $t('ssl.disableTitle') : $t('ssl.enableTitle')}>
                 {#if sslBusy}
-                  {ssl.enabled ? 'Desactivando…' : 'Esperando confirmación…'}
+                  {ssl.enabled ? $t('ssl.disabling') : $t('common.waitingConfirm')}
                 {:else}
-                  {ssl.enabled ? 'Desactivar' : 'Activar'}
+                  {ssl.enabled ? $t('ssl.disable') : $t('ssl.enable')}
                 {/if}
               </button>
             {/if}

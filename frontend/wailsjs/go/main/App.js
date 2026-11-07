@@ -38,6 +38,10 @@ export function GetHostsStatus() {
   return window['go']['main']['App']['GetHostsStatus']();
 }
 
+export function GetI18n() {
+  return window['go']['main']['App']['GetI18n']();
+}
+
 export function GetLogs() {
   return window['go']['main']['App']['GetLogs']();
 }
@@ -100,6 +104,10 @@ export function RemoveShimsFromPath() {
 
 export function SaveSettings(arg1) {
   return window['go']['main']['App']['SaveSettings'](arg1);
+}
+
+export function SetLanguage(arg1) {
+  return window['go']['main']['App']['SetLanguage'](arg1);
 }
 
 export function SetPHPVersion(arg1) {

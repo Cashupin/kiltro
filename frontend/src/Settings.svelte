@@ -7,6 +7,7 @@
   } from '../wailsjs/go/main/App.js'
   import { config, services } from '../wailsjs/go/models'
   import { BrowserOpenURL } from '../wailsjs/runtime/runtime.js'
+  import { t, th, tr, langPref, supported, changeLanguage } from './i18n'
 
   // Valores del formulario
   let httpPort = 80
@@ -72,8 +73,8 @@
       }))
       msgIsError = false
       msg = restarted && restarted.length > 0
-        ? 'Guardado. Reiniciado: ' + restarted.map((n) => serviceNames[n] ?? n).join(', ') + '.'
-        : 'Guardado. Se aplica la próxima vez que inicies los servicios.'
+        ? tr('settings.savedRestarted', { services: restarted.map((n) => serviceNames[n] ?? n).join(', ') })
+        : tr('settings.savedLater')
       await load()
     } catch (e) {
       msgIsError = true
@@ -89,7 +90,7 @@
     try {
       await UninstallCA()
       caMsgIsError = false
-      caMsg = 'Certificado de Kiltro quitado de Windows. HTTPS quedó desactivado.'
+      caMsg = tr('ca.done')
     } catch (e) {
       caMsgIsError = true
       caMsg = String(e)
@@ -120,10 +121,10 @@
     try {
       if (add) {
         await AddShimsToPath()
-        shimsMsg = 'Listo. Las terminales que ya estaban abiertas no lo ven: ciérralas y abre una nueva.'
+        shimsMsg = tr('shims.added')
       } else {
         await RemoveShimsFromPath()
-        shimsMsg = 'Quitado del PATH. Las terminales que ya estaban abiertas lo siguen viendo hasta cerrarlas.'
+        shimsMsg = tr('shims.removed')
       }
       shimsMsgIsError = false
     } catch (e) {
@@ -132,6 +133,19 @@
     } finally {
       shimsBusy = false
       await loadShims()
+    }
+  }
+
+  // Idioma: se aplica en el momento (no espera a "Guardar cambios").
+  // Los nombres de los idiomas van siempre en su propio idioma.
+  const langNames: Record<string, string> = { es: 'Español', en: 'English' }
+  let langMsg = ''
+  async function pickLanguage(e: Event) {
+    langMsg = ''
+    try {
+      await changeLanguage((e.target as HTMLSelectElement).value)
+    } catch (err) {
+      langMsg = String(err)
     }
   }
 
@@ -147,11 +161,11 @@
 
 <section class="settings">
   {#if loadError}
-    <p class="error">{loadError}. Se muestran los valores por defecto; al guardar se corrige el archivo.</p>
+    <p class="error">{$t('settings.loadError', { error: loadError })}</p>
   {/if}
 
   <div class="card">
-    <div class="card-title">Puertos</div>
+    <div class="card-title">{$t('settings.ports')}</div>
     <div class="body grid">
       <label for="http">Nginx HTTP</label>
       <input id="http" type="number" min="1" max="65535" bind:value={httpPort} />
@@ -165,84 +179,89 @@
       <label for="redis">Redis</label>
       <input id="redis" type="number" min="1" max="65535" bind:value={redisPort} />
 
-      <label for="phpbase">PHP (primer puerto)</label>
+      <label for="phpbase">{$t('settings.phpFirstPort')}</label>
       <div>
         <input id="phpbase" type="number" min="1" max="65535" bind:value={phpBasePort} />
-        <span class="muted hint">workers en {phpBasePort}–{phpLastPort}</span>
+        <span class="muted hint">{$t('settings.workersRange', { from: phpBasePort, to: phpLastPort })}</span>
       </div>
 
-      <label for="workers">Workers de PHP</label>
+      <label for="workers">{$t('settings.phpWorkers')}</label>
       <div>
         <input id="workers" type="number" min="1" max="16" bind:value={phpWorkers} />
-        <span class="muted hint">peticiones PHP que se atienden a la vez</span>
+        <span class="muted hint">{$t('settings.workersHint')}</span>
       </div>
     </div>
     {#if mysqlChanged}
-      <p class="body warn">Si cambias el puerto de MySQL, actualiza <code>DB_PORT</code> en el <code>.env</code> de tus proyectos.</p>
+      <p class="body warn">{@html $th('settings.mysqlPortWarn')}</p>
     {/if}
   </div>
 
   <div class="card">
-    <div class="card-title">Red</div>
+    <div class="card-title">{$t('settings.network')}</div>
     <div class="body">
       <label class="check">
         <input type="checkbox" bind:checked={lan} />
-        Accesible desde la red local
+        {$t('settings.lan')}
       </label>
-      <p class="muted small">
-        Apagado (recomendado): los sitios solo responden en esta PC. Encendido: otros equipos de tu red
-        (ej. tu celular) pueden entrar por la IP de esta PC, y Windows puede preguntar por el firewall.
-        Adminer sigue siendo solo para esta PC.
-      </p>
+      <p class="muted small">{$t('settings.lanHelp')}</p>
     </div>
   </div>
 
   <div class="card">
-    <div class="card-title">Carpeta de proyectos</div>
+    <div class="card-title">{$t('settings.www')}</div>
     <div class="body">
       <div class="row">
         <input class="path" type="text" bind:value={www} placeholder={defaultWww} />
-        <button on:click={chooseFolder}>Elegir…</button>
+        <button on:click={chooseFolder}>{$t('settings.choose')}</button>
         {#if www}
-          <button class="ghost" on:click={() => (www = '')} title={defaultWww}>Usar la predeterminada</button>
+          <button class="ghost" on:click={() => (www = '')} title={defaultWww}>{$t('settings.useDefault')}</button>
         {/if}
       </div>
-      <p class="muted small">Cada carpeta dentro es un sitio <code>&lt;carpeta&gt;.test</code>.</p>
+      <p class="muted small">{@html $th('settings.wwwHelp')}</p>
     </div>
   </div>
 
   <div class="save row">
     <button class="primary" on:click={save} disabled={saving}>
-      {saving ? 'Guardando…' : 'Guardar cambios'}
+      {saving ? $t('settings.saving') : $t('settings.save')}
     </button>
     {#if msg}<span class={msgIsError ? 'error' : 'ok'}>{msg}</span>{/if}
   </div>
 
   <div class="card">
+    <div class="card-title">{$t('lang.title')}</div>
+    <div class="body">
+      <select value={$langPref} on:change={pickLanguage}>
+        <option value="">{$t('lang.auto')}</option>
+        {#each $supported as code}
+          <option value={code}>{langNames[code] ?? code}</option>
+        {/each}
+      </select>
+      {#if langMsg}<p class="error small">{langMsg}</p>{/if}
+    </div>
+  </div>
+
+  <div class="card">
     <div class="card-title">
       <span class="dot" class:ok={shims?.inPath}></span>
-      php y composer en la terminal
+      {$t('shims.title')}
     </div>
     <div class="body">
-      <p class="muted small first">
-        Agrega <code>{shims?.dir ?? 'bin\\shims'}</code> al PATH de tu usuario (no pide admin), para usar
-        <code>php</code> y <code>composer</code> en cualquier terminal con la versión de PHP elegida en Kiltro.
-        Al cambiar la versión, cambian solos.
-      </p>
+      <p class="muted small first">{@html $th('shims.help', { dir: shims?.dir ?? 'bin\\shims' })}</p>
       {#if shims}
         <p class="small first">
-          {#if shims.php}PHP: <code>{shims.php}</code>{:else}<span class="warn">No hay PHP en bin\php.</span>{/if}
+          {#if shims.php}PHP: <code>{shims.php}</code>{:else}<span class="warn">{$t('shims.noPhp')}</span>{/if}
           {#if !shims.composer}
-            · <span class="warn">Falta <code>bin\composer\composer.phar</code> (solo funcionará <code>php</code>).</span>
+            · <span class="warn">{@html $th('shims.noComposer')}</span>
           {/if}
         </p>
         <div class="row">
           {#if shims.inPath}
-            <span class="ok">✓ Está en el PATH</span>
-            <button on:click={() => toggleShims(false)} disabled={shimsBusy}>Quitar del PATH</button>
+            <span class="ok">{$t('shims.inPath')}</span>
+            <button on:click={() => toggleShims(false)} disabled={shimsBusy}>{$t('shims.remove')}</button>
           {:else}
             <button class="outline" on:click={() => toggleShims(true)} disabled={shimsBusy || !shims.php}>
-              Agregar al PATH
+              {$t('shims.add')}
             </button>
           {/if}
         </div>
@@ -255,19 +274,16 @@
   <div class="card">
     <div class="card-title">HTTPS</div>
     <div class="body">
-      <p class="muted small first">
-        Quita de Windows el certificado de Kiltro que se instaló al activar HTTPS. Los navegadores dejan
-        de confiar en <code>https://*.test</code>. Windows pide confirmar.
-      </p>
+      <p class="muted small first">{@html $th('ca.help')}</p>
       <div class="row">
         {#if !confirmUninstall}
-          <button on:click={() => (confirmUninstall = true)} disabled={uninstalling}>Desinstalar certificado de Kiltro</button>
+          <button on:click={() => (confirmUninstall = true)} disabled={uninstalling}>{$t('ca.uninstall')}</button>
         {:else}
-          <span class="warn">¿Seguro?</span>
+          <span class="warn">{$t('ca.sure')}</span>
           <button class="danger" on:click={uninstallCA} disabled={uninstalling}>
-            {uninstalling ? 'Esperando confirmación…' : 'Sí, desinstalar'}
+            {uninstalling ? $t('common.waitingConfirm') : $t('ca.yes')}
           </button>
-          <button class="ghost" on:click={() => (confirmUninstall = false)} disabled={uninstalling}>Cancelar</button>
+          <button class="ghost" on:click={() => (confirmUninstall = false)} disabled={uninstalling}>{$t('common.cancel')}</button>
         {/if}
       </div>
       {#if caMsg}<p class={caMsgIsError ? 'error' : 'ok'}>{caMsg}</p>{/if}
@@ -275,11 +291,11 @@
   </div>
 
   <div class="card">
-    <div class="card-title">Acerca de</div>
+    <div class="card-title">{$t('about.title')}</div>
     <div class="body">
-      <p class="small first">Kiltro <strong>{version}</strong> · software libre (GPL-3.0) · <a href="https://github.com/Cashupin/kiltro" on:click|preventDefault={() => BrowserOpenURL('https://github.com/Cashupin/kiltro')}>github.com/Cashupin/kiltro</a></p>
-      <p class="small">Carpeta de la app: <code class="sel">{root}</code></p>
-      <p class="muted small">Ahí están <code>bin\</code>, <code>etc\</code>, <code>data\</code>, <code>logs\</code> y <code>config.json</code>.</p>
+      <p class="small first">Kiltro <strong>{version}</strong> · {$t('about.free')} · <a href="https://github.com/Cashupin/kiltro" on:click|preventDefault={() => BrowserOpenURL('https://github.com/Cashupin/kiltro')}>github.com/Cashupin/kiltro</a></p>
+      <p class="small">{$t('about.root')} <code class="sel">{root}</code></p>
+      <p class="muted small">{@html $th('about.rootHelp')}</p>
     </div>
   </div>
 </section>

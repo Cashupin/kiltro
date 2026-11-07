@@ -16,12 +16,13 @@
 package tray
 
 import (
-	"fmt"
 	"runtime"
 	"sync"
 	"time"
 
 	"fyne.io/systray"
+
+	"kiltro/internal/i18n"
 )
 
 // Service es lo que el menú necesita saber de cada servicio.
@@ -49,6 +50,9 @@ var (
 	current []Service                        // último estado recibido
 	exited  = make(chan struct{})            // se cierra cuando el ícono ya se quitó
 	started bool
+
+	// Ítems fijos del menú: se guardan para cambiarles el texto si cambia el idioma.
+	openItem, startAllItem, stopAllItem, quitItem *systray.MenuItem
 )
 
 // Start muestra el ícono en la bandeja. services es la lista inicial (define
@@ -66,21 +70,22 @@ func Start(icon []byte, services []Service, cb Callbacks) {
 		// Clic izquierdo en el ícono = abrir la ventana. El derecho muestra el menú.
 		systray.SetOnTapped(cb.Open)
 
-		open := systray.AddMenuItem("Abrir Kiltro", "Muestra la ventana de Kiltro")
+		// Los textos se ponen en apply() (en el idioma en uso).
+		open := systray.AddMenuItem("Kiltro", "")
 		systray.AddSeparator()
 
 		mu.Lock()
 		for _, s := range current {
 			// Checkbox: el tick indica "corriendo". Al hacer clic se alterna.
-			items[s.Name] = systray.AddMenuItemCheckbox(s.Label, "Iniciar/detener "+s.Label, false)
+			items[s.Name] = systray.AddMenuItemCheckbox(s.Label, "", false)
 		}
 		mu.Unlock()
 
 		systray.AddSeparator()
-		startAll := systray.AddMenuItem("Iniciar todo", "Inicia PHP, MySQL, Redis y Nginx")
-		stopAll := systray.AddMenuItem("Detener todo", "Detiene todos los servicios")
+		startAll := systray.AddMenuItem("", "")
+		stopAll := systray.AddMenuItem("", "")
 		systray.AddSeparator()
-		quit := systray.AddMenuItem("Salir", "Detiene los servicios y cierra Kiltro")
+		quit := systray.AddMenuItem("", "")
 
 		// Cada ítem avisa sus clics por un canal (ClickedCh). Una goroutine por
 		// ítem espera esos clics y llama a la acción correspondiente.
@@ -94,6 +99,7 @@ func Start(icon []byte, services []Service, cb Callbacks) {
 		onClick(quit, cb.Quit)
 
 		mu.Lock()
+		openItem, startAllItem, stopAllItem, quitItem = open, startAll, stopAll, quit
 		ready = true
 		apply()
 		mu.Unlock()
@@ -118,6 +124,7 @@ func onClick(item *systray.MenuItem, f func()) {
 
 // Update refleja el estado de los servicios en el menú y en el tooltip.
 // Se puede llamar desde cualquier goroutine, incluso antes de que el menú exista.
+// También se llama al cambiar el idioma (rehace todos los textos).
 func Update(services []Service) {
 	mu.Lock()
 	defer mu.Unlock()
@@ -129,6 +136,15 @@ func Update(services []Service) {
 
 // apply actualiza ticks, textos y tooltip con `current`. Requiere mu tomado.
 func apply() {
+	openItem.SetTitle(i18n.T("tray.open"))
+	openItem.SetTooltip(i18n.T("tray.openTip"))
+	startAllItem.SetTitle(i18n.T("tray.startAll"))
+	startAllItem.SetTooltip(i18n.T("tray.startAllTip"))
+	stopAllItem.SetTitle(i18n.T("tray.stopAll"))
+	stopAllItem.SetTooltip(i18n.T("tray.stopAllTip"))
+	quitItem.SetTitle(i18n.T("tray.quit"))
+	quitItem.SetTooltip(i18n.T("tray.quitTip"))
+
 	running := 0
 	for _, s := range current {
 		item, ok := items[s.Name]
@@ -136,25 +152,26 @@ func apply() {
 			continue
 		}
 		title := s.Label
+		item.SetTooltip(i18n.T("tray.toggleTip", "name", s.Label))
 		switch s.Status {
 		case "running":
 			running++
 			item.Check()
 		case "starting":
-			title += " (iniciando…)"
+			title += " " + i18n.T("tray.starting")
 			item.Check()
 		case "stopping":
-			title += " (deteniendo…)"
+			title += " " + i18n.T("tray.stopping")
 			item.Uncheck()
 		case "error":
-			title += " (error)"
+			title += " " + i18n.T("tray.error")
 			item.Uncheck()
 		default:
 			item.Uncheck()
 		}
 		item.SetTitle(title)
 	}
-	systray.SetTooltip(fmt.Sprintf("Kiltro — %d/%d servicios corriendo", running, len(current)))
+	systray.SetTooltip(i18n.T("tray.tooltip", "running", running, "total", len(current)))
 }
 
 // Stop quita el ícono de la bandeja. Se llama al cerrar la app; si no, el
