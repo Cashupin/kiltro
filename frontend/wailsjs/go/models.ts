@@ -91,6 +91,22 @@ export namespace services {
 	        this.selected = source["selected"];
 	    }
 	}
+	export class SSLStatus {
+	    enabled: boolean;
+	    available: boolean;
+	    error: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new SSLStatus(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.enabled = source["enabled"];
+	        this.available = source["available"];
+	        this.error = source["error"];
+	    }
+	}
 
 }
 

@@ -129,7 +129,7 @@ Trabajar **una etapa a la vez**. No adelantar trabajo de etapas siguientes.
         `http://adminer.test`, solo accesible desde 127.0.0.1, con botón en la UI.
 - [x] **Etapa 5:** Selector de versión de PHP.
 - [x] **Etapa 6:** System tray (minimizar a bandeja, start/stop desde el menú).
-- [ ] **Etapa 7:** SSL con mkcert (`https://proyecto.test`).
+- [x] **Etapa 7:** SSL con mkcert (`https://proyecto.test`).
 - [ ] **Etapa 8:** Redis, visor de logs, pantalla de configuración (puertos, carpeta www, etc.).
 - [ ] **Etapa 9:** Pulido de la UI y del flujo de uso.
   - Ocultar las herramientas internas (`adminer.test`) de la lista de "Sitios": se usan desde
@@ -151,7 +151,7 @@ Trabajar **una etapa a la vez**. No adelantar trabajo de etapas siguientes.
 
 ## Estado actual
 
-**Etapas 1 a 6 completas** (2026-11-06). Siguiente: Etapa 7 (SSL con mkcert).
+**Etapas 1 a 7 completas** (2026-11-06). Siguiente: Etapa 8 (Redis, visor de logs, pantalla de configuración).
 
 Notas para las próximas etapas:
 - La plantilla svelte-ts de Wails v2.17.1 trae Svelte 5: se usa `mount()` en `main.ts`, pero
@@ -187,3 +187,10 @@ Notas para las próximas etapas:
   `SingleInstanceLock` evita dos Kiltro a la vez. El menú se actualiza con el mismo `Notify` de
   los servicios, que llama a `List()`: **nunca llamar `Notify()` con el mutex del servicio tomado**.
   Ícono: por ahora `build/windows/icon.ico` de la plantilla (Etapa 9: ícono propio).
+- HTTPS (`internal/certs`): mkcert 1.4.4 compilado con `go install`. `CAROOT=etc/ssl/ca`,
+  `TRUST_STORES=system`; certificados por dominio en `etc/ssl/certs/` (más `localhost` para el
+  default server del 443). `"ssl": true` en `config.json` activa `listen 443 ssl` y agrega el 443 a
+  `Nginx.Ports()`. Activar/desactivar reinicia Nginx (no `-s reload`: cambia un puerto).
+  `mkcert -install` usa `procutil.StartAllowDialogs` (sin HideWindow) para que se vea el aviso de
+  Windows. curl de Windows necesita `--ssl-no-revoke` con estos certificados; los navegadores no.
+  Pendiente para la Etapa 8: botón para desinstalar la CA (`mkcert -uninstall`).

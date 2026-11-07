@@ -4,6 +4,7 @@
   import {
     GetAppRoot, GetServices, StartService, StopService, GetSites, ReloadSites,
     GetHostsStatus, SyncHosts, OpenAdminer, GetPHPVersions, SetPHPVersion,
+    GetSSLStatus, EnableSSL, DisableSSL,
   } from '../wailsjs/go/main/App.js'
   import { EventsOn, BrowserOpenURL } from '../wailsjs/runtime/runtime.js'
   import type { services, vhosts } from '../wailsjs/go/models'
@@ -71,11 +72,45 @@
     redis: 'Redis',
   }
 
-  // [9000, 9001, 9002, 9003] → ":9000-9003"; [80] → ":80"
+  // [9000, 9001, 9002, 9003] → ":9000-9003"; [80] → ":80"; [80, 443] → ":80, 443"
   function portsLabel(ports: number[]): string {
     if (!ports || ports.length === 0) return ''
-    if (ports.length === 1) return ':' + ports[0]
-    return ':' + ports[0] + '-' + ports[ports.length - 1]
+    const consecutive = ports.every((p, i) => i === 0 || p === ports[i - 1] + 1)
+    if (consecutive && ports.length > 2) return ':' + ports[0] + '-' + ports[ports.length - 1]
+    return ':' + ports.join(', ')
+  }
+
+  // --- HTTPS ---
+  let ssl: services.SSLStatus | null = null
+  let sslBusy = false
+  let sslMsg = '' // error al activar/desactivar
+
+  $: scheme = ssl?.enabled ? 'https://' : 'http://'
+
+  async function refreshSsl() {
+    try {
+      ssl = await GetSSLStatus()
+    } catch (e) {
+      ssl = null
+    }
+  }
+
+  async function toggleSsl() {
+    sslBusy = true
+    sslMsg = ''
+    try {
+      if (ssl?.enabled) {
+        await DisableSSL()
+      } else {
+        await EnableSSL()
+      }
+    } catch (e) {
+      sslMsg = String(e)
+    } finally {
+      sslBusy = false
+      await refreshSsl()
+      await refresh()
+    }
   }
 
   async function refresh() {
@@ -117,7 +152,7 @@
   }
 
   function openSite(domain: string) {
-    BrowserOpenURL('http://' + domain)
+    BrowserOpenURL(scheme + domain)
   }
 
   async function reloadSites() {
@@ -167,6 +202,7 @@
     await refreshPhpVersions()
     await refreshSites()
     await refreshHosts()
+    await refreshSsl()
   })
 
   onDestroy(() => offs.forEach((off) => off()))
@@ -233,7 +269,7 @@
         {#each sites as site (site.name)}
           <tr>
             <td class="name">
-              <a href={'http://' + site.domain} on:click|preventDefault={() => openSite(site.domain)}>{site.domain}</a>
+              <a href={scheme + site.domain} on:click|preventDefault={() => openSite(site.domain)}>{site.domain}</a>
             </td>
             <td>
               {#if site.laravel}<span class="badge">Laravel</span>{/if}
@@ -268,6 +304,33 @@
     </p>
     {#if hostsStatus.error}
       <p class="error">{hostsStatus.error}</p>
+    {/if}
+  {/if}
+
+  {#if ssl}
+    <p class="hosts">
+      HTTPS:
+      {#if ssl.enabled}
+        <span class="ok">activado</span>
+      {:else}
+        <span class="muted">desactivado</span>
+      {/if}
+      {#if ssl.available}
+        <button on:click={toggleSsl} disabled={sslBusy}
+          title={ssl.enabled ? 'Volver a solo http://' : 'Windows pedirá confirmar que confías en el certificado de Kiltro'}>
+          {#if sslBusy}
+            {ssl.enabled ? 'Desactivando…' : 'Esperando confirmación…'}
+          {:else}
+            {ssl.enabled ? 'Desactivar HTTPS' : 'Activar HTTPS'}
+          {/if}
+        </button>
+      {/if}
+    </p>
+    {#if ssl.error}
+      <p class="muted">{ssl.error}</p>
+    {/if}
+    {#if sslMsg}
+      <p class="error">{sslMsg}</p>
     {/if}
   {/if}
 </main>

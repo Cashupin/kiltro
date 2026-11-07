@@ -3,11 +3,17 @@
 import {services} from '../models';
 import {main} from '../models';
 
+export function DisableSSL():Promise<void>;
+
+export function EnableSSL():Promise<void>;
+
 export function GetAppRoot():Promise<string>;
 
 export function GetHostsStatus():Promise<services.HostsStatus>;
 
 export function GetPHPVersions():Promise<Array<services.PHPVersion>>;
+
+export function GetSSLStatus():Promise<services.SSLStatus>;
 
 export function GetServices():Promise<Array<services.Info>>;
 

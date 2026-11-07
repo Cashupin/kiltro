@@ -23,13 +23,25 @@ import (
 //
 // Después de Start, el llamador usa cmd.Wait() / cmd.Process como siempre.
 func Start(job *Job, cmd *exec.Cmd) error {
+	return start(job, cmd, true)
+}
+
+// StartAllowDialogs es como Start, pero NO oculta las ventanas del programa:
+// solo evita la consola negra. Se usa para `mkcert -install`, que hace que
+// Windows muestre un aviso de seguridad ("¿instalar este certificado?"). Con
+// HideWindow ese aviso podría quedar oculto y el comando esperaría para siempre.
+func StartAllowDialogs(job *Job, cmd *exec.Cmd) error {
+	return start(job, cmd, false)
+}
+
+func start(job *Job, cmd *exec.Cmd, hide bool) error {
 	if cmd.SysProcAttr == nil {
 		cmd.SysProcAttr = &syscall.SysProcAttr{}
 	}
 	// HideWindow: si el programa intenta mostrar una ventana, que arranque oculta.
 	// CREATE_NO_WINDOW: a los programas de consola (nginx, php-cgi, mysqld) no se
 	// les crea una ventana de consola negra.
-	cmd.SysProcAttr.HideWindow = true
+	cmd.SysProcAttr.HideWindow = hide
 	cmd.SysProcAttr.CreationFlags |= windows.CREATE_NO_WINDOW | windows.CREATE_SUSPENDED
 
 	if err := cmd.Start(); err != nil {

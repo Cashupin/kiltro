@@ -8,6 +8,7 @@ import (
 	"os"
 	"sync"
 
+	"kiltro/internal/certs"
 	"kiltro/internal/config"
 	"kiltro/internal/hosts"
 	"kiltro/internal/procutil"
@@ -249,6 +250,78 @@ func (m *ServiceManager) ReloadSites() ([]vhosts.Site, error) {
 		m.env.Log.Printf("[nginx] error al recargar sitios: %v", err)
 	}
 	return sites, err
+}
+
+// SSLStatus es el estado de HTTPS para la UI.
+type SSLStatus struct {
+	Enabled   bool   `json:"enabled"`   // HTTPS activado (config.json)
+	Available bool   `json:"available"` // mkcert está en bin/mkcert/
+	Error     string `json:"error"`     // ej. falta mkcert
+}
+
+// SSLStatus dice si HTTPS está activado y si se puede activar.
+func (m *ServiceManager) SSLStatus() SSLStatus {
+	st := SSLStatus{Enabled: sslEnabled()}
+	if _, err := certs.Exe(); err != nil {
+		st.Error = err.Error()
+	} else {
+		st.Available = true
+	}
+	return st
+}
+
+// EnableSSL activa HTTPS:
+//  1. Verifica que el 443 esté libre (si no, no cambia nada).
+//  2. Instala la CA de mkcert en Windows (aparece un aviso de seguridad).
+//  3. Lo guarda en config.json.
+//  4. Si Nginx corre, lo reinicia: al arrancar crea los certificados y escucha en el 443.
+//
+// Se reinicia en vez de `nginx -s reload` porque se agrega un puerto nuevo, y
+// en Windows es más seguro que el master lo abra desde cero.
+func (m *ServiceManager) EnableSSL() error {
+	m.opMu.Lock()
+	defer m.opMu.Unlock()
+
+	if err := procutil.CheckPortFree(nginxSSLPort); err != nil {
+		m.env.Log.Printf("[ssl] no se activa: %v", err)
+		return err
+	}
+	m.env.Log.Printf("[ssl] instalando la CA de mkcert (Windows pide confirmación)...")
+	if err := certs.Install(m.env.Job); err != nil {
+		m.env.Log.Printf("[ssl] %v", err)
+		return err
+	}
+	if err := config.Update(func(s *config.Settings) { s.SSL = true }); err != nil {
+		return err
+	}
+	m.env.Log.Printf("[ssl] HTTPS activado (CA en %s)", certs.CARoot())
+	return m.restartNginxForSSL()
+}
+
+// DisableSSL vuelve a solo HTTP. La CA queda instalada (desinstalarla será
+// una opción de la pantalla de configuración).
+func (m *ServiceManager) DisableSSL() error {
+	m.opMu.Lock()
+	defer m.opMu.Unlock()
+
+	if err := config.Update(func(s *config.Settings) { s.SSL = false }); err != nil {
+		return err
+	}
+	m.env.Log.Printf("[ssl] HTTPS desactivado")
+	return m.restartNginxForSSL()
+}
+
+// restartNginxForSSL reinicia Nginx si está corriendo, para que tome el
+// cambio de HTTPS. Si está detenido, se aplicará cuando se inicie. Requiere opMu.
+func (m *ServiceManager) restartNginxForSSL() error {
+	defer m.env.Notify() // la UI muestra los puertos de nginx (80 / 80, 443)
+	if st := m.nginx.Status(); st != StatusRunning && st != StatusStarting {
+		return nil
+	}
+	if err := m.stop(m.nginx); err != nil {
+		return err
+	}
+	return m.start(m.nginx)
 }
 
 // HostsStatus es el estado del archivo hosts respecto de los sitios de www/.

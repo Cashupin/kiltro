@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	"kiltro/internal/certs"
 	"kiltro/internal/config"
 	"kiltro/internal/procutil"
 	"kiltro/internal/vhosts"
@@ -19,6 +20,7 @@ import (
 
 const (
 	nginxPort         = 80               // fijo por ahora; configurable en la etapa 8
+	nginxSSLPort      = 443              // HTTPS, solo si está activado (ver sslEnabled)
 	nginxStartTimeout = 5 * time.Second  // cuánto esperar a que empiece a escuchar
 	nginxStopTimeout  = 10 * time.Second // cuánto esperar al apagado limpio antes de forzar
 )
@@ -47,7 +49,20 @@ func NewNginx(env *Env) *Nginx {
 }
 
 func (n *Nginx) Name() string { return "nginx" }
-func (n *Nginx) Ports() []int { return []int{nginxPort} }
+
+// Ports incluye el 443 solo si HTTPS está activado (si no, no se toca).
+func (n *Nginx) Ports() []int {
+	if sslEnabled() {
+		return []int{nginxPort, nginxSSLPort}
+	}
+	return []int{nginxPort}
+}
+
+// sslEnabled dice si el usuario activó HTTPS (config.json).
+func sslEnabled() bool {
+	cfg, _ := config.Load()
+	return cfg.SSL
+}
 
 func (n *Nginx) Status() Status {
 	n.mu.Lock()
@@ -264,11 +279,31 @@ func (n *Nginx) generateSites(exe string) ([]vhosts.Site, error) {
 		n.env.Log.Printf("[nginx] carpeta www\\%s ignorada: %s", s.Folder, s.Reason)
 	}
 
-	err = vhosts.Generate(sites, vhosts.Options{
+	opts := vhosts.Options{
 		SitesDir:    config.Path("etc", "nginx", "sites"),
 		FastcgiConf: filepath.Join(filepath.Dir(exe), "conf", "fastcgi.conf"),
 		Port:        nginxPort,
-	})
+	}
+
+	// HTTPS: asegurar un certificado por dominio (más "localhost", que usa el
+	// server por defecto en el 443). Solo se crean los que faltan.
+	if sslEnabled() {
+		domains := []string{"localhost"}
+		for _, s := range sites {
+			domains = append(domains, s.Domain)
+		}
+		created, err := certs.Ensure(n.env.Job, domains)
+		if len(created) > 0 {
+			n.env.Log.Printf("[ssl] certificados creados: %s", strings.Join(created, ", "))
+		}
+		if err != nil {
+			return nil, err
+		}
+		opts.SSLPort = nginxSSLPort
+		opts.SSLCert = certs.Files
+	}
+
+	err = vhosts.Generate(sites, opts)
 	if err != nil {
 		return nil, err
 	}
@@ -337,6 +372,20 @@ func phpUpstream() string {
 	return b.String()
 }
 
+// defaultSSL son las líneas de HTTPS del server por defecto (vacío si HTTPS
+// está apagado). Usa el certificado de "localhost"; un dominio sin vhost que
+// entre por https verá una advertencia de certificado, lo cual es correcto.
+func defaultSSL() string {
+	if !sslEnabled() {
+		return ""
+	}
+	cert, key := certs.Files("localhost")
+	return fmt.Sprintf(`
+        listen       %d ssl default_server;
+        ssl_certificate      "%s";
+        ssl_certificate_key  "%s";`, nginxSSLPort, filepath.ToSlash(cert), filepath.ToSlash(key))
+}
+
 // writeNginxConf genera etc/nginx/nginx.conf. Por ahora es una config fija:
 // un server en localhost:80 que sirve etc/nginx/default/ (un phpinfo de prueba)
 // pasando los .php a los workers de PHP. En la etapa 3 esto pasa a generarse
@@ -392,7 +441,7 @@ http {
     # Server por defecto: atiende localhost y cualquier dominio que no tenga
     # vhost propio (muestra el phpinfo de prueba).
     server {
-        listen       %[3]d default_server;
+        listen       %[3]d default_server;%[8]s
         server_name  localhost;
         root         "%[5]s";
         index        index.php index.html;
@@ -413,7 +462,7 @@ http {
     include "%[7]s/*.conf";
 }
 `, nginxErrorLog, mimeTypes, nginxPort, phpUpstream(), filepath.ToSlash(defaultRoot), fastcgiConf,
-		filepath.ToSlash(config.Path("etc", "nginx", "sites")))
+		filepath.ToSlash(config.Path("etc", "nginx", "sites")), defaultSSL())
 
 	path := config.Path(filepath.FromSlash(nginxConfRel))
 	if err := os.WriteFile(path, []byte(conf), 0o644); err != nil {

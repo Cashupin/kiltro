@@ -17,8 +17,15 @@ import (
 // http://adminer.test usando el mismo Nginx + PHP de los proyectos.
 // No es un "servicio" (no tiene proceso propio): es un sitio más.
 
-// AdminerURL abre Adminer con el servidor y el usuario ya completados.
-const AdminerURL = "http://adminer.test/?server=127.0.0.1&username=root"
+// AdminerURL abre Adminer con el servidor y el usuario ya completados
+// (por https si HTTPS está activado).
+func AdminerURL() string {
+	scheme := "http"
+	if sslEnabled() {
+		scheme = "https"
+	}
+	return scheme + "://adminer.test/?server=127.0.0.1&username=root"
+}
 
 // adminerFile busca el .php de Adminer; "" si no está instalado.
 func adminerFile() string {

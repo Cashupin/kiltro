@@ -215,7 +215,31 @@ func (a *App) ReloadSites() error {
 // OpenAdminer abre el gestor de base de datos en el navegador, con el
 // servidor y el usuario root ya completados.
 func (a *App) OpenAdminer() {
-	runtime.BrowserOpenURL(a.ctx, services.AdminerURL)
+	runtime.BrowserOpenURL(a.ctx, services.AdminerURL())
+}
+
+// GetSSLStatus dice si HTTPS está activado y si mkcert está instalado.
+func (a *App) GetSSLStatus() (services.SSLStatus, error) {
+	if err := a.ready(); err != nil {
+		return services.SSLStatus{}, err
+	}
+	return a.manager.SSLStatus(), nil
+}
+
+// EnableSSL activa HTTPS (Windows muestra un aviso para confiar en la CA).
+func (a *App) EnableSSL() error {
+	if err := a.ready(); err != nil {
+		return err
+	}
+	return a.manager.EnableSSL()
+}
+
+// DisableSSL vuelve a solo HTTP.
+func (a *App) DisableSSL() error {
+	if err := a.ready(); err != nil {
+		return err
+	}
+	return a.manager.DisableSSL()
 }
 
 // GetHostsStatus dice si el archivo hosts tiene los dominios de www/.

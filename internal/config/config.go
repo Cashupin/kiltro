@@ -15,6 +15,9 @@ import (
 type Settings struct {
 	// PHP es el nombre de la carpeta dentro de bin/php/ (ej. "php-8.4.27-1-nts-Win32-vs17-x64").
 	PHP string `json:"php,omitempty"`
+
+	// SSL: true si el usuario activó HTTPS (la CA de mkcert ya está instalada).
+	SSL bool `json:"ssl,omitempty"`
 }
 
 // mu evita que dos goroutines escriban config.json a la vez.

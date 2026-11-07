@@ -128,3 +128,34 @@ func TestGenerate(t *testing.T) {
 		t.Error("los archivos que no son .conf no se tocan")
 	}
 }
+
+func TestGenerateConHTTPS(t *testing.T) {
+	sitesDir := filepath.Join(t.TempDir(), "sites")
+	sites := []Site{{Name: "blog", Domain: "blog.test", Root: `C:\www\blog`}}
+
+	// Sin SSLCert: solo HTTP.
+	if err := Generate(sites, Options{SitesDir: sitesDir, Port: 80}); err != nil {
+		t.Fatal(err)
+	}
+	conf, _ := os.ReadFile(filepath.Join(sitesDir, "blog.test.conf"))
+	if strings.Contains(string(conf), "ssl") {
+		t.Errorf("sin HTTPS no debería haber nada de ssl:\n%s", conf)
+	}
+
+	err := Generate(sites, Options{SitesDir: sitesDir, Port: 80, SSLPort: 443,
+		SSLCert: func(d string) (string, string) { return `C:\ssl\` + d + ".pem", `C:\ssl\` + d + "-key.pem" }})
+	if err != nil {
+		t.Fatal(err)
+	}
+	conf, _ = os.ReadFile(filepath.Join(sitesDir, "blog.test.conf"))
+	for _, want := range []string{
+		"listen       80;",
+		"listen       443 ssl;",
+		`ssl_certificate      "C:/ssl/blog.test.pem";`,
+		`ssl_certificate_key  "C:/ssl/blog.test-key.pem";`,
+	} {
+		if !strings.Contains(string(conf), want) {
+			t.Errorf("blog.test.conf no contiene %q:\n%s", want, conf)
+		}
+	}
+}

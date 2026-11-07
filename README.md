@@ -115,6 +115,27 @@ Para que `*.test` resuelva, Kiltro escribe un bloque en
 - Antes de cada cambio se guarda una copia en `etc/hosts-backup/` (las últimas 10).
 - Algunos antivirus avisan cuando un programa modifica el hosts; hay que permitirlo.
 
+## HTTPS (mkcert)
+
+| Herramienta | Versión probada | Archivo | Cómo obtenerlo |
+|-------------|-----------------|---------|----------------|
+| mkcert      | 1.4.4           | `bin/mkcert/mkcert.exe` | `go install filippo.io/mkcert@v1.4.4` con `GOBIN` apuntando a `bin/mkcert` (Go verifica el código contra sum.golang.org), o el `.exe` de https://github.com/FiloSottile/mkcert/releases |
+
+- Botón **Activar HTTPS** (debajo del archivo hosts). Windows muestra un aviso de seguridad
+  preguntando si confías en el certificado "mkcert ..." de Kiltro: hay que aceptar. No
+  requiere admin (se instala para tu usuario).
+- Después, todos los sitios responden también por `https://proyecto.test` (y `http://` sigue
+  funcionando). Los proyectos nuevos reciben su certificado al pulsar "Recargar sitios".
+- Necesita el **puerto 443** libre (VMware o algunos antivirus lo usan).
+- La autoridad certificadora (CA) queda en `etc/ssl/ca/` y los certificados en
+  `etc/ssl/certs/`. **No compartas `rootCA-key.pem`**: con ese archivo se pueden crear
+  certificados que tu PC acepta para cualquier sitio.
+- Para quitar la CA de Windows: `certmgr.msc` → Entidades de certificación raíz de confianza →
+  Certificados → borrar el que empieza con "mkcert". (Desde Kiltro: en la pantalla de
+  configuración, más adelante.)
+- Firefox usa los certificados de Windows por defecto (`security.enterprise_roots.enabled`).
+- Para Laravel, recuerda poner `APP_URL=https://proyecto.test` en el `.env` si usas HTTPS.
+
 ## Bandeja del sistema
 
 - Cerrar la ventana con la **X** no cierra Kiltro: la esconde en la bandeja (junto al

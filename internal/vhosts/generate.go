@@ -16,6 +16,11 @@ type Options struct {
 	SitesDir    string // carpeta donde se escriben los .conf (etc/nginx/sites)
 	FastcgiConf string // ruta del fastcgi.conf que trae nginx
 	Port        int    // puerto HTTP (80)
+
+	// HTTPS. Si SSLCert es nil, los vhosts son solo HTTP. Si no, cada vhost
+	// escucha también en SSLPort con el certificado que devuelve SSLCert.
+	SSLPort int
+	SSLCert func(domain string) (cert, key string)
 }
 
 // Datos que recibe vhost.conf.tmpl. Las rutas van con "/" (Nginx las acepta
@@ -28,6 +33,10 @@ type templateData struct {
 	LocalOnly   bool
 	Port        int
 	FastcgiConf string
+	SSL         bool
+	SSLPort     int
+	SSLCert     string
+	SSLKey      string
 }
 
 // Generate escribe un <dominio>.conf por sitio en opts.SitesDir y borra los
@@ -49,8 +58,7 @@ func Generate(sites []Site, opts Options) error {
 
 	keep := map[string]bool{}
 	for _, s := range sites {
-		var buf bytes.Buffer
-		err := tmpl.Execute(&buf, templateData{
+		data := templateData{
 			Domain:      s.Domain,
 			Folder:      filepath.ToSlash(s.Folder),
 			Root:        filepath.ToSlash(s.Root),
@@ -58,7 +66,14 @@ func Generate(sites []Site, opts Options) error {
 			LocalOnly:   s.LocalOnly,
 			Port:        opts.Port,
 			FastcgiConf: filepath.ToSlash(opts.FastcgiConf),
-		})
+		}
+		if opts.SSLCert != nil {
+			cert, key := opts.SSLCert(s.Domain)
+			data.SSL, data.SSLPort = true, opts.SSLPort
+			data.SSLCert, data.SSLKey = filepath.ToSlash(cert), filepath.ToSlash(key)
+		}
+		var buf bytes.Buffer
+		err := tmpl.Execute(&buf, data)
 		if err != nil {
 			return fmt.Errorf("vhost de %s: %w", s.Domain, err)
 		}
