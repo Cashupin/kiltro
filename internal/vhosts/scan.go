@@ -121,3 +121,23 @@ func fileExists(path string) bool {
 	info, err := os.Stat(path)
 	return err == nil && !info.IsDir()
 }
+
+// CheckNewName valida el nombre de un sitio nuevo (botón "Nuevo sitio") con
+// las mismas reglas que Scan, y devuelve el nombre normalizado, que es el que
+// se usa para la carpeta: "Mi Tienda" -> "mi-tienda" (-> mi-tienda.test).
+func CheckNewName(name string) (string, error) {
+	n := normalizeName(strings.TrimSpace(name))
+	if n == "" {
+		return "", fmt.Errorf("escribe un nombre para el sitio")
+	}
+	if !validName.MatchString(n) {
+		return "", fmt.Errorf("%q no sirve como dominio: usa letras, números y guiones (sin puntos ni tildes)", name)
+	}
+	if tool, reserved := Reserved[n]; reserved {
+		return "", fmt.Errorf("el nombre %s%s está reservado para %s", n, TLD, tool)
+	}
+	return n, nil
+}
+
+// NormalizedName es el nombre de dominio (sin .test) que tendría una carpeta.
+func NormalizedName(folder string) string { return normalizeName(folder) }

@@ -9,6 +9,8 @@ export function ChooseFolder(arg1:string):Promise<string>;
 
 export function ClearLog(arg1:string):Promise<void>;
 
+export function CreateSite(arg1:string):Promise<string>;
+
 export function DisableSSL():Promise<void>;
 
 export function EnableSSL():Promise<void>;
@@ -32,6 +34,10 @@ export function GetSites():Promise<main.SitesResult>;
 export function OpenAdminer():Promise<void>;
 
 export function OpenLogsFolder():Promise<void>;
+
+export function OpenSiteFolder(arg1:string):Promise<void>;
+
+export function OpenSiteTerminal(arg1:string):Promise<void>;
 
 export function ReadLog(arg1:string):Promise<logview.Result>;
 

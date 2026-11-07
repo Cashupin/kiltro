@@ -159,3 +159,16 @@ func TestGenerateConHTTPS(t *testing.T) {
 		}
 	}
 }
+
+func TestCheckNewName(t *testing.T) {
+	for in, want := range map[string]string{"Mi Tienda": "mi-tienda", "blog_2": "blog-2", "  api  ": "api"} {
+		if got, err := CheckNewName(in); err != nil || got != want {
+			t.Errorf("CheckNewName(%q) = %q, %v; se esperaba %q", in, got, err, want)
+		}
+	}
+	for _, bad := range []string{"", "mi.tienda", "canción", "adminer", "-raro", strings.Repeat("a", 70)} {
+		if _, err := CheckNewName(bad); err == nil {
+			t.Errorf("CheckNewName(%q) debería fallar", bad)
+		}
+	}
+}

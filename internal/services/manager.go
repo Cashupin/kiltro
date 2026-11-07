@@ -6,6 +6,9 @@ import (
 	"io"
 	"log"
 	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
 	"sync"
 
 	"kiltro/internal/certs"
@@ -329,6 +332,75 @@ func (m *ServiceManager) restartNginxForSSL() error {
 		return err
 	}
 	return m.start(m.nginx)
+}
+
+// site busca un sitio de www/ por nombre. La UI manda solo el nombre (nunca
+// una ruta): la carpeta sale de nuestra propia lista.
+func (m *ServiceManager) site(name string) (vhosts.Site, error) {
+	sites, _, err := allSites()
+	if err != nil {
+		return vhosts.Site{}, err
+	}
+	for _, s := range sites {
+		if s.Name == name && !s.Tool {
+			return s, nil
+		}
+	}
+	return vhosts.Site{}, fmt.Errorf("no existe el sitio %q", name)
+}
+
+// OpenSiteFolder abre la carpeta del proyecto en el Explorador.
+func (m *ServiceManager) OpenSiteFolder(name string) error {
+	s, err := m.site(name)
+	if err != nil {
+		return err
+	}
+	return procutil.ShellOpen(s.Folder, "", "")
+}
+
+// OpenSiteTerminal abre una terminal en la carpeta del proyecto: Windows
+// Terminal si está instalado, si no PowerShell.
+func (m *ServiceManager) OpenSiteTerminal(name string) error {
+	s, err := m.site(name)
+	if err != nil {
+		return err
+	}
+	if wt, err := exec.LookPath("wt.exe"); err == nil {
+		// -d: carpeta inicial. Las comillas protegen rutas con espacios.
+		return procutil.ShellOpen(wt, `-d "`+s.Folder+`"`, s.Folder)
+	}
+	return procutil.ShellOpen("powershell.exe", "-NoExit", s.Folder)
+}
+
+// CreateSite crea una carpeta vacía en www/ para un proyecto nuevo y recarga
+// los sitios. Devuelve el dominio (ej. "mi-tienda.test").
+func (m *ServiceManager) CreateSite(name string) (string, error) {
+	n, err := vhosts.CheckNewName(name)
+	if err != nil {
+		return "", err
+	}
+	www := config.Current().WWWDir()
+	if err := os.MkdirAll(www, 0o755); err != nil {
+		return "", err
+	}
+	dir := filepath.Join(www, n)
+	// Comparar también ignorando mayúsculas: Windows trata "Blog" y "blog" como
+	// la misma carpeta, y Scan las normalizaría al mismo dominio.
+	if entries, err := os.ReadDir(www); err == nil {
+		for _, e := range entries {
+			if strings.EqualFold(e.Name(), n) || (e.IsDir() && vhosts.NormalizedName(e.Name()) == n) {
+				return "", fmt.Errorf("ya existe la carpeta %s (sería %s%s)", filepath.Join(www, e.Name()), n, vhosts.TLD)
+			}
+		}
+	}
+	if err := os.Mkdir(dir, 0o755); err != nil {
+		return "", fmt.Errorf("no se pudo crear %s: %w", dir, err)
+	}
+	m.env.Log.Printf("[sitios] carpeta creada: %s", dir)
+	if _, err := m.ReloadSites(); err != nil {
+		return n + vhosts.TLD, err
+	}
+	return n + vhosts.TLD, nil
 }
 
 // HostsStatus es el estado del archivo hosts respecto de los sitios de www/.

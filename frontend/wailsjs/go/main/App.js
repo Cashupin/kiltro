@@ -10,6 +10,10 @@ export function ClearLog(arg1) {
   return window['go']['main']['App']['ClearLog'](arg1);
 }
 
+export function CreateSite(arg1) {
+  return window['go']['main']['App']['CreateSite'](arg1);
+}
+
 export function DisableSSL() {
   return window['go']['main']['App']['DisableSSL']();
 }
@@ -56,6 +60,14 @@ export function OpenAdminer() {
 
 export function OpenLogsFolder() {
   return window['go']['main']['App']['OpenLogsFolder']();
+}
+
+export function OpenSiteFolder(arg1) {
+  return window['go']['main']['App']['OpenSiteFolder'](arg1);
+}
+
+export function OpenSiteTerminal(arg1) {
+  return window['go']['main']['App']['OpenSiteTerminal'](arg1);
 }
 
 export function ReadLog(arg1) {

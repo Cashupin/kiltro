@@ -79,7 +79,7 @@ Se descomprimen los zip tal cual.
 | Adminer     | 6.3.0 (MySQL)   | `bin/adminer/adminer-6.3.0-mysql.php` | https://www.adminer.org/ (versión "for MySQL") |
 
 - Si el archivo está en `bin/adminer/`, Kiltro sirve Adminer en `http://adminer.test`
-  (botón **Gestor BD** en la fila de MySQL; necesita PHP, MySQL y Nginx corriendo).
+  (botón **Gestor BD** en la fila de MySQL: si falta PHP, MySQL o Nginx, los inicia antes de abrirlo).
 - Permite entrar como `root` sin contraseña. Por eso `adminer.test` **solo responde desde
   esta PC** (127.0.0.1): nadie de la red local puede entrar.
 - El nombre `adminer` queda reservado: una carpeta `www/adminer` se ignora.
@@ -122,6 +122,12 @@ rojo y las advertencias en amarillo.
 Cada carpeta dentro de `www/` se sirve en `http://<carpeta>.test` (los proyectos Laravel
 se sirven desde `public/`). Los vhosts se generan en `etc/nginx/sites/` al arrancar Nginx
 o al pulsar "Recargar sitios".
+
+- **Nuevo sitio**: crea la carpeta vacía en `www/` (el nombre se normaliza: "Mi Tienda" → `mi-tienda.test`)
+  y recarga los sitios. Pon tu proyecto dentro de esa carpeta.
+- Cada sitio tiene botones **Abrir** (navegador), **Carpeta** (Explorador) y **Terminal**
+  (Windows Terminal si está instalado; si no, PowerShell) abierta en la carpeta del proyecto.
+- Adminer no aparece en la lista: se abre con su botón.
 
 Para que `*.test` resuelva, Kiltro escribe un bloque en
 `C:\Windows\System32\drivers\etc\hosts`:

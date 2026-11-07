@@ -3,15 +3,15 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"os"
-
-	"golang.org/x/sys/windows"
 
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 
 	"kiltro/internal/config"
 	"kiltro/internal/logview"
+	"kiltro/internal/procutil"
 	"kiltro/internal/services"
 	"kiltro/internal/tray"
 	"kiltro/internal/vhosts"
@@ -217,9 +217,58 @@ func (a *App) ReloadSites() error {
 }
 
 // OpenAdminer abre el gestor de base de datos en el navegador, con el
-// servidor y el usuario root ya completados.
-func (a *App) OpenAdminer() {
+// servidor y el usuario root ya completados. Antes inicia lo que haga falta
+// (PHP, MySQL y Nginx, en ese orden) y se asegura de que adminer.test esté en
+// el hosts: si no, el navegador abriría una página que no carga.
+func (a *App) OpenAdminer() error {
+	if err := a.ready(); err != nil {
+		return err
+	}
+	names := map[string]string{"php": "PHP", "mysql": "MySQL", "nginx": "Nginx"}
+	for _, name := range []string{"php", "mysql", "nginx"} {
+		if err := a.manager.Start(name); err != nil { // si ya corre, no hace nada
+			return fmt.Errorf("no se pudo iniciar %s para abrir el gestor: %w", names[name], err)
+		}
+	}
+	// Puede mostrar el aviso de UAC (solo si faltaba adminer.test en el hosts).
+	err := a.manager.SyncHosts()
+	runtime.EventsEmit(a.ctx, "hosts:changed")
+	if err != nil {
+		return err
+	}
 	runtime.BrowserOpenURL(a.ctx, services.AdminerURL())
+	return nil
+}
+
+// --- Sitios ---
+
+// OpenSiteFolder abre la carpeta de un proyecto en el Explorador.
+func (a *App) OpenSiteFolder(name string) error {
+	if err := a.ready(); err != nil {
+		return err
+	}
+	return a.manager.OpenSiteFolder(name)
+}
+
+// OpenSiteTerminal abre una terminal en la carpeta de un proyecto.
+func (a *App) OpenSiteTerminal(name string) error {
+	if err := a.ready(); err != nil {
+		return err
+	}
+	return a.manager.OpenSiteTerminal(name)
+}
+
+// CreateSite crea la carpeta de un proyecto nuevo en www/ y recarga los
+// sitios. Devuelve el dominio (ej. "mi-tienda.test").
+func (a *App) CreateSite(name string) (string, error) {
+	if err := a.ready(); err != nil {
+		return "", err
+	}
+	domain, err := a.manager.CreateSite(name)
+	if err == nil {
+		go a.syncHostsInBackground() // dominio nuevo: hay que agregarlo al hosts (UAC)
+	}
+	return domain, err
 }
 
 // SettingsView es lo que recibe la pantalla de configuración.
@@ -295,16 +344,14 @@ func (a *App) ClearLog(id string) error {
 
 // OpenLogsFolder abre la carpeta logs\ en el Explorador de Windows.
 //
-// Se usa ShellExecute ("abrir esta carpeta") en vez de lanzar explorer.exe
-// como proceso hijo: así el Explorador no queda dentro del Job Object de
-// Kiltro (si lo estuviera, esa ventana se cerraría al salir de Kiltro).
+// Con procutil.ShellOpen (y no como proceso hijo): así el Explorador no queda
+// dentro del Job Object de Kiltro (si no, esa ventana se cerraría al salir de Kiltro).
 func (a *App) OpenLogsFolder() error {
 	dir := config.Path("logs")
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return err
 	}
-	return windows.ShellExecute(0, windows.StringToUTF16Ptr("open"), windows.StringToUTF16Ptr(dir),
-		nil, nil, windows.SW_SHOWNORMAL)
+	return procutil.ShellOpen(dir, "", "")
 }
 
 // GetSSLStatus dice si HTTPS está activado y si mkcert está instalado.

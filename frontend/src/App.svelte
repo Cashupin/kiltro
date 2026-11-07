@@ -4,6 +4,7 @@
   import {
     GetAppRoot, GetServices, StartService, StopService, GetSites, ReloadSites,
     GetHostsStatus, SyncHosts, OpenAdminer, GetPHPVersions, SetPHPVersion,
+    OpenSiteFolder, OpenSiteTerminal, CreateSite,
     GetSSLStatus, EnableSSL, DisableSSL,
   } from '../wailsjs/go/main/App.js'
   import { EventsOn, BrowserOpenURL } from '../wailsjs/runtime/runtime.js'
@@ -58,6 +59,56 @@
 
   // Adminer está instalado si aparece entre los sitios (como herramienta).
   $: hasAdminer = sites.some((x) => x.tool && x.name === 'adminer')
+  // En la lista solo se muestran los proyectos de www; las herramientas (Adminer)
+  // se usan desde su botón.
+  $: projects = sites.filter((x) => !x.tool)
+
+  // "Gestor BD": inicia lo que falte (PHP, MySQL, Nginx) y abre Adminer.
+  let openingAdminer = false
+  async function openAdminer() {
+    errorMsg = ''
+    openingAdminer = true
+    try {
+      await OpenAdminer()
+    } catch (e) {
+      errorMsg = String(e)
+    } finally {
+      openingAdminer = false
+      await refresh()
+    }
+  }
+
+  // Errores de los botones de cada sitio (Carpeta, Terminal).
+  async function siteAction(f: () => Promise<void>) {
+    sitesMsg = ''
+    try {
+      await f()
+    } catch (e) {
+      sitesMsg = String(e)
+    }
+  }
+
+  // "Nuevo sitio"
+  let creating = false     // se muestra el campo para escribir el nombre
+  let newName = ''
+  let createMsg = ''
+  let createIsError = false
+  async function createSite() {
+    createMsg = ''
+    try {
+      const domain = await CreateSite(newName)
+      createIsError = false
+      createMsg = 'Creado ' + domain + ': pon tu proyecto en su carpeta.'
+      newName = ''
+      creating = false
+    } catch (e) {
+      createIsError = true
+      createMsg = String(e)
+    } finally {
+      await refreshSites()
+      await refreshHosts()
+    }
+  }
 
   const labels: Record<string, string> = {
     stopped: 'Detenido',
@@ -265,8 +316,10 @@
               {s.status === 'running' || s.status === 'starting' ? 'Detener' : 'Iniciar'}
             </button>
             {#if s.name === 'mysql' && hasAdminer}
-              <button on:click={() => OpenAdminer()} disabled={s.status !== 'running'}
-                title="Abre Adminer en el navegador (necesita PHP, MySQL y Nginx corriendo)">Gestor BD</button>
+              <button on:click={openAdminer} disabled={openingAdminer}
+                title="Abre Adminer en el navegador (inicia PHP, MySQL y Nginx si hace falta)">
+                {openingAdminer ? 'Iniciando…' : 'Gestor BD'}
+              </button>
             {/if}
           </td>
         </tr>
@@ -286,23 +339,40 @@
     <button on:click={reloadSites} disabled={reloading}>
       {reloading ? 'Recargando…' : 'Recargar sitios'}
     </button>
+    <button on:click={() => { creating = !creating; createMsg = '' }}>Nuevo sitio</button>
   </h2>
 
-  {#if sites.length === 0}
-    <p class="muted">No hay proyectos. Crea una carpeta dentro de <code>www\</code> y pulsa "Recargar sitios".</p>
+  {#if creating}
+    <form class="newsite" on:submit|preventDefault={createSite}>
+      <input bind:value={newName} placeholder="nombre (ej. mi-tienda)" />
+      <span class="muted">{newName.trim() ? newName.trim().toLowerCase().replace(/[ _]/g, '-') + '.test' : ''}</span>
+      <button type="submit" disabled={!newName.trim()}>Crear</button>
+      <button type="button" on:click={() => (creating = false)}>Cancelar</button>
+    </form>
+  {/if}
+  {#if createMsg}
+    <p class={createIsError ? 'error' : 'ok'}>{createMsg}</p>
+  {/if}
+
+  {#if projects.length === 0}
+    <p class="muted">No hay proyectos. Pulsa "Nuevo sitio" o crea una carpeta dentro de <code>www\</code> y pulsa "Recargar sitios".</p>
   {:else}
     <table>
       <tbody>
-        {#each sites as site (site.name)}
+        {#each projects as site (site.name)}
           <tr>
             <td class="name">
               <a href={scheme + site.domain} on:click|preventDefault={() => openSite(site.domain)}>{site.domain}</a>
             </td>
             <td>
               {#if site.laravel}<span class="badge">Laravel</span>{/if}
-              {#if site.tool}<span class="badge tool">Herramienta</span>{/if}
             </td>
             <td class="muted"><code>{site.root}</code></td>
+            <td class="actions">
+              <button on:click={() => openSite(site.domain)}>Abrir</button>
+              <button on:click={() => siteAction(() => OpenSiteFolder(site.name))}>Carpeta</button>
+              <button on:click={() => siteAction(() => OpenSiteTerminal(site.name))}>Terminal</button>
+            </td>
           </tr>
         {/each}
       </tbody>
@@ -468,8 +538,21 @@
     background: #f4511e;
     font-size: 0.85em;
   }
-  .badge.tool {
-    background: #5c6bc0;
+  .actions button {
+    min-width: 0;
+    margin-left: 0.3rem;
+  }
+  .newsite {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.8rem;
+  }
+  .newsite input {
+    padding: 0.3rem 0.5rem;
+    border-radius: 3px;
+    border: 1px solid #555;
+    width: 16rem;
   }
 
   .detail {

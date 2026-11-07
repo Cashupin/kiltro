@@ -138,12 +138,25 @@ Trabajar **una etapa a la vez**. No adelantar trabajo de etapas siguientes.
         abrir carpeta, vaciar).
   - [x] 8c: Redis (5.0.14.1 de Laragon), `redis.conf` generado, apagado con `redis-cli shutdown`.
 - [ ] **Etapa 9:** Pulido de la UI y del flujo de uso.
-  - Ocultar las herramientas internas (`adminer.test`) de la lista de "Sitios": se usan desde
-    su botón, no como un proyecto más (siguen en Nginx y en el hosts).
-  - "Gestor BD" siempre disponible: si al pulsarlo faltan PHP, MySQL o Nginx, arrancarlos
-    (en ese orden) y recién ahí abrir Adminer.
-  - Mejorar el aspecto general de la ventana de Kiltro.
-  - Ícono propio de Kiltro (exe y bandeja; hoy es la "W" de la plantilla de Wails).
+  - [x] 9a: Flujo de uso.
+    - Ocultar las herramientas internas (`adminer.test`) de la lista de "Sitios": se usan desde
+      su botón, no como un proyecto más (siguen en Nginx y en el hosts).
+    - "Gestor BD" siempre disponible: si al pulsarlo faltan PHP, MySQL o Nginx, arrancarlos
+      (en ese orden) y recién ahí abrir Adminer.
+    - Por sitio: botones "Abrir", "Carpeta" (Explorador) y "Terminal" (PowerShell en la carpeta).
+    - "Nuevo sitio": crea una carpeta vacía en `www/` (con nombre válido) y recarga los sitios.
+  - [ ] 9b: Aspecto de la ventana (CSS simple, sin frameworks).
+    - Estado con punto de color, botones ▶/■, "Iniciar todo" / "Detener todo" arriba.
+    - Barra superior con el nombre; la ruta raíz pasa a Configuración.
+    - Hosts y HTTPS agrupados en un bloque; paleta con acento azul (como el tema de Adminer).
+  - [ ] 9c: Ícono propio de Kiltro (SVG → `.ico` con varios tamaños; exe y bandeja; hoy es la
+        "W" de la plantilla de Wails).
+  - [ ] 9d: `php` y `composer` en la terminal (opcional, con un botón en Configuración).
+    - Composer 2.10.2 copiado de Laragon a `bin/composer/composer.phar`.
+    - Kiltro genera `bin/shims/php.bat` y `composer.bat` que apuntan a la versión de PHP
+      elegida; la carpeta `shims` se agrega UNA vez al PATH del usuario (HKCU, sin admin).
+      Al cambiar de versión solo se reescriben los .bat (el PATH no se vuelve a tocar).
+    - Botón para quitarla del PATH. Avisar que las terminales ya abiertas no lo ven.
 - [ ] **Etapa 10:** Instalador (NSIS, el que soporta `wails build -nsis`).
   - Corre una vez como admin para:
     - instalar la CA de mkcert en el almacén de la **máquina** (así no aparece el aviso de
@@ -167,7 +180,7 @@ Trabajar **una etapa a la vez**. No adelantar trabajo de etapas siguientes.
 
 ## Estado actual
 
-**Etapas 1 a 8 completas** (2026-11-06). Siguiente: Etapa 9 (pulido de la UI y del flujo de uso).
+**Etapas 1 a 8 completas y 9a** (2026-11-06). Siguiente: 9b (aspecto de la ventana).
 
 Notas para las próximas etapas:
 - La plantilla svelte-ts de Wails v2.17.1 trae Svelte 5: se usa `mount()` en `main.ts`, pero
@@ -224,3 +237,8 @@ Notas para las próximas etapas:
   `127.0.0.1`, datos en `data/redis/dump.rdb`, log en `logs/redis/redis.log`). Apagado con
   `redis-cli -p <puerto con que arrancó> shutdown` (guarda el RDB); matar solo tras 30 s.
   Ninguno de los PHP trae `php_redis.dll`: para Laravel usar `predis` (o agregar la extensión).
+- Sitios (9a): la UI manda solo el NOMBRE del sitio; la carpeta sale de `allSites()`. Carpeta y
+  Terminal se abren con `procutil.ShellOpen` (fuera del Job, para que no se cierren con Kiltro).
+  "Nuevo sitio" valida con `vhosts.CheckNewName` (mismas reglas que `Scan`) y crea la carpeta
+  vacía (para que `composer create-project` funcione ahí). "Gestor BD" (`App.OpenAdminer`)
+  inicia PHP/MySQL/Nginx y hace `SyncHosts` antes de abrir el navegador.
