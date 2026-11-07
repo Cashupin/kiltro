@@ -161,6 +161,8 @@
     root = await GetAppRoot()
     offs.push(EventsOn('services:changed', refresh))
     offs.push(EventsOn('hosts:changed', refreshHosts))
+    // Errores de acciones hechas desde el menú de la bandeja.
+    offs.push(EventsOn('app:error', (msg: string) => { errorMsg = msg }))
     await refresh()
     await refreshPhpVersions()
     await refreshSites()

@@ -115,6 +115,16 @@ Para que `*.test` resuelva, Kiltro escribe un bloque en
 - Antes de cada cambio se guarda una copia en `etc/hosts-backup/` (las últimas 10).
 - Algunos antivirus avisan cuando un programa modifica el hosts; hay que permitirlo.
 
+## Bandeja del sistema
+
+- Cerrar la ventana con la **X** no cierra Kiltro: la esconde en la bandeja (junto al
+  reloj) y los servicios siguen corriendo.
+- **Clic** en el ícono: abre la ventana. **Clic derecho**: menú con cada servicio (el tick
+  indica que corre; clic para iniciar/detener), "Iniciar todo", "Detener todo" y **Salir**.
+- **Salir** detiene todos los servicios de forma limpia y cierra Kiltro.
+- Si el ícono no aparece, puede estar en los íconos ocultos (flecha `^` de la barra de tareas).
+- Solo puede haber un Kiltro abierto: abrir el `.exe` otra vez muestra la ventana del que ya corre.
+
 ## Build
 
 ```bat

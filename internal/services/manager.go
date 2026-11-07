@@ -1,6 +1,7 @@
 package services
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -186,6 +187,21 @@ func (m *ServiceManager) stop(s Service) error {
 	}
 	m.env.Log.Printf("[%s] detenido", s.Name())
 	return nil
+}
+
+// StartAll inicia todos los servicios en orden (PHP, MySQL, Nginx). Si uno
+// falla, sigue con los demás y devuelve todos los errores juntos.
+func (m *ServiceManager) StartAll() error {
+	m.opMu.Lock()
+	defer m.opMu.Unlock()
+
+	var errs []error
+	for _, s := range m.services {
+		if err := m.start(s); err != nil {
+			errs = append(errs, fmt.Errorf("%s: %w", s.Name(), err))
+		}
+	}
+	return errors.Join(errs...)
 }
 
 // StopAll detiene todos los servicios, en orden inverso al de arranque.

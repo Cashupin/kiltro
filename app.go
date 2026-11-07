@@ -4,10 +4,12 @@ import (
 	"context"
 	"errors"
 
+	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 
 	"kiltro/internal/config"
 	"kiltro/internal/services"
+	"kiltro/internal/tray"
 	"kiltro/internal/vhosts"
 )
 
@@ -16,14 +18,15 @@ import (
 //
 // Si un método devuelve un error, en JS la promesa se rechaza con el mensaje.
 type App struct {
-	ctx     context.Context
-	manager *services.ServiceManager
-	initErr error // si el manager no pudo crearse, se guarda aquí para mostrarlo
+	ctx      context.Context
+	manager  *services.ServiceManager
+	initErr  error  // si el manager no pudo crearse, se guarda aquí para mostrarlo
+	trayIcon []byte // .ico de la bandeja
 }
 
 // NewApp crea la estructura App.
-func NewApp() *App {
-	return &App{}
+func NewApp(trayIcon []byte) *App {
+	return &App{trayIcon: trayIcon}
 }
 
 // startup lo llama Wails al arrancar.
@@ -31,22 +34,99 @@ func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
 
 	// Cada vez que un servicio cambia de estado, avisamos al frontend con un
-	// evento; el frontend vuelve a pedir la lista (GetServices).
+	// evento (el frontend vuelve a pedir la lista con GetServices) y
+	// actualizamos el menú de la bandeja.
 	m, err := services.NewManager(func() {
 		runtime.EventsEmit(a.ctx, "services:changed")
+		tray.Update(a.trayServices())
 	})
 	if err != nil {
 		a.initErr = err
 		return
 	}
 	a.manager = m
+
+	tray.Start(a.trayIcon, a.trayServices(), tray.Callbacks{
+		Open:     a.showWindow,
+		Toggle:   a.trayToggle,
+		StartAll: a.trayStartAll,
+		StopAll:  a.manager.StopAll,
+		// runtime.Quit cierra Wails, que llama a shutdown (apaga los servicios).
+		Quit: func() { runtime.Quit(a.ctx) },
+	})
 }
 
-// shutdown lo llama Wails al cerrar la ventana: apaga todos los servicios limpio.
+// shutdown lo llama Wails al cerrar la app ("Salir" en la bandeja): apaga
+// todos los servicios limpio y quita el ícono de la bandeja.
 func (a *App) shutdown(ctx context.Context) {
 	if a.manager != nil {
 		a.manager.Close()
 	}
+	tray.Stop()
+}
+
+// --- bandeja del sistema ---
+
+// showWindow trae la ventana al frente (estaba escondida en la bandeja o minimizada).
+func (a *App) showWindow() {
+	runtime.WindowUnminimise(a.ctx)
+	runtime.WindowShow(a.ctx)
+}
+
+// onSecondInstance: alguien abrió kiltro.exe de nuevo; mostramos este.
+func (a *App) onSecondInstance(_ options.SecondInstanceData) {
+	a.showWindow()
+}
+
+// trayServices arma el estado de los servicios para el menú de la bandeja.
+func (a *App) trayServices() []tray.Service {
+	if a.manager == nil {
+		return nil
+	}
+	labels := map[string]string{"php": "PHP", "mysql": "MySQL", "nginx": "Nginx"}
+	var out []tray.Service
+	for _, info := range a.manager.List() {
+		label := labels[info.Name]
+		if label == "" {
+			label = info.Name
+		}
+		out = append(out, tray.Service{Name: info.Name, Label: label, Status: string(info.Status)})
+	}
+	return out
+}
+
+// trayToggle inicia o detiene un servicio desde el menú de la bandeja.
+func (a *App) trayToggle(name string) {
+	for _, info := range a.manager.List() {
+		if info.Name != name {
+			continue
+		}
+		var err error
+		if info.Status == services.StatusRunning || info.Status == services.StatusStarting {
+			err = a.StopService(name)
+		} else {
+			err = a.StartService(name)
+		}
+		if err != nil {
+			a.reportError(err)
+		}
+		return
+	}
+}
+
+func (a *App) trayStartAll() {
+	err := a.manager.StartAll()
+	go a.syncHostsInBackground() // Nginx pudo haber arrancado
+	if err != nil {
+		a.reportError(err)
+	}
+}
+
+// reportError muestra un error que ocurrió desde la bandeja: abre la ventana
+// (si no, el usuario no se entera) y le pasa el mensaje a la UI.
+func (a *App) reportError(err error) {
+	a.showWindow()
+	runtime.EventsEmit(a.ctx, "app:error", err.Error())
 }
 
 // GetAppRoot devuelve la carpeta raíz de la app (ver config.AppRoot).

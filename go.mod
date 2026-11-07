@@ -3,6 +3,7 @@ module kiltro
 go 1.26.0
 
 require (
+	fyne.io/systray v1.12.2
 	github.com/wailsapp/wails/v2 v2.17.1
 	golang.org/x/sys v0.48.0
 )

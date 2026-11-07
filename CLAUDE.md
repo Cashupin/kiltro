@@ -39,6 +39,7 @@ kiltro/
 │   ├── vhosts/              # escaneo de www/ y generación de configs
 │   ├── hosts/               # lectura/escritura del archivo hosts
 │   ├── certs/               # integración con mkcert
+│   ├── tray/                # ícono y menú de la bandeja (fyne.io/systray)
 │   └── config/              # config.json de la app
 ├── templates/
 │   └── nginx/vhost.conf.tmpl
@@ -106,8 +107,7 @@ Todas las rutas se resuelven relativas al ejecutable, nunca rutas absolutas hard
 
 ## Puntos conocidos a resolver en su etapa
 
-- **System tray:** Wails v2 no trae bandeja nativa. En la etapa correspondiente evaluar una
-  librería (ej. `fyne.io/systray`) y cómo convive con el loop de Wails. Proponer antes de implementar.
+- **System tray:** resuelto en la etapa 6 con `fyne.io/systray` (ver `internal/tray`).
 - **Cambio de versión de PHP:** cada versión con su propio `php.ini`. Las extensiones (DLL)
   deben corresponder a esa versión exacta.
 
@@ -128,7 +128,7 @@ Trabajar **una etapa a la vez**. No adelantar trabajo de etapas siguientes.
   - [x] 4b: Gestor de BD con Adminer (un archivo PHP en `bin/adminer/`) servido en
         `http://adminer.test`, solo accesible desde 127.0.0.1, con botón en la UI.
 - [x] **Etapa 5:** Selector de versión de PHP.
-- [ ] **Etapa 6:** System tray (minimizar a bandeja, start/stop desde el menú).
+- [x] **Etapa 6:** System tray (minimizar a bandeja, start/stop desde el menú).
 - [ ] **Etapa 7:** SSL con mkcert (`https://proyecto.test`).
 - [ ] **Etapa 8:** Redis, visor de logs, pantalla de configuración (puertos, carpeta www, etc.).
 - [ ] **Etapa 9:** Pulido de la UI y del flujo de uso.
@@ -137,6 +137,7 @@ Trabajar **una etapa a la vez**. No adelantar trabajo de etapas siguientes.
   - "Gestor BD" siempre disponible: si al pulsarlo faltan PHP, MySQL o Nginx, arrancarlos
     (en ese orden) y recién ahí abrir Adminer.
   - Mejorar el aspecto general de la ventana de Kiltro.
+  - Ícono propio de Kiltro (exe y bandeja; hoy es la "W" de la plantilla de Wails).
 
 ## Forma de trabajar
 
@@ -150,7 +151,7 @@ Trabajar **una etapa a la vez**. No adelantar trabajo de etapas siguientes.
 
 ## Estado actual
 
-**Etapas 1 a 5 completas** (2026-11-06). Siguiente: Etapa 6 (system tray: proponer librería antes de implementar).
+**Etapas 1 a 6 completas** (2026-11-06). Siguiente: Etapa 7 (SSL con mkcert).
 
 Notas para las próximas etapas:
 - La plantilla svelte-ts de Wails v2.17.1 trae Svelte 5: se usa `mount()` en `main.ts`, pero
@@ -180,3 +181,9 @@ Notas para las próximas etapas:
   contraseña) y el vhost es `LocalOnly` (solo 127.0.0.1). Tema propio en `templates/adminer/`
   (en modo oscuro Adminer no carga `adminer.css`: `adminer-dark.css` se arma uniendo ambos).
   `adminer` es nombre reservado en `www/`.
+- Bandeja (`internal/tray`): `systray.Run` corre en una goroutine con `runtime.LockOSThread()`
+  (Windows entrega los mensajes de una ventana solo al hilo que la creó). `HideWindowOnClose`:
+  la X esconde; "Salir" llama `runtime.Quit` → `shutdown` (apaga servicios y quita el ícono).
+  `SingleInstanceLock` evita dos Kiltro a la vez. El menú se actualiza con el mismo `Notify` de
+  los servicios, que llama a `List()`: **nunca llamar `Notify()` con el mutex del servicio tomado**.
+  Ícono: por ahora `build/windows/icon.ico` de la plantilla (Etapa 9: ícono propio).
